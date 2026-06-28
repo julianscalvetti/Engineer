@@ -1,0 +1,11 @@
+node_modules/
+.next/
+
+# Archivos reales y exportaciones locales
+data/raw/*
+!data/raw/.gitkeep
+data/csv/*
+!data/csv/.gitkeep
+*.xlsx
+*.xlsm
+*.csv
