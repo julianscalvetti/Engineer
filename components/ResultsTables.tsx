@@ -1,4 +1,6 @@
 import type { QualityAnalysis, RankingItem } from "@/types/quality";
+import { generateNotice } from "@/lib/generateNotice";
+import QualityNotice from "./QualityNotice";
 
 const NUMBER_FORMAT = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 const PERCENT_FORMAT = new Intl.NumberFormat("es-AR", {
@@ -41,6 +43,8 @@ function RankingTable({ title, items }: { title: string; items: RankingItem[] })
 }
 
 export default function ResultsTables({ analysis }: { analysis: QualityAnalysis }) {
+  const notice = generateNotice(analysis);
+
   return (
     <section className="results-panel" aria-labelledby="results-title">
       <div className="results-heading">
@@ -85,6 +89,8 @@ export default function ResultsTables({ analysis }: { analysis: QualityAnalysis 
         Los rankings por cantidad no OK son el resultado principal. La tasa es estimada y puede
         incluir totales repetidos cuando un mismo control aparece en varias filas.
       </p>
+
+      {notice && <QualityNotice notice={notice} />}
 
       <div className="rankings-grid">
         <RankingTable title="Top 5 modos de falla" items={analysis.failureModes} />

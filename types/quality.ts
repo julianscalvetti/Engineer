@@ -34,11 +34,24 @@ export interface QualityAnalysis {
   totalNoOk: number;
   validRows: number;
   discardedRows: number;
+  topPieceDisplayName: string | null;
   estimatedRate: EstimatedRate | null;
   failureModes: RankingItem[];
   pieces: RankingItem[];
   operations: RankingItem[] | null;
   shifts: RankingItem[] | null;
+}
+
+export interface QualityNoticeData {
+  totalNoOk: number;
+  piece: string;
+  pieceNoOk: number;
+  failureMode: string;
+  failureModePercentage: number;
+  operation: string | null;
+  shift: string | null;
+  estimatedRate: EstimatedRate | null;
+  priority: string[];
 }
 
 export interface ColumnValidation {

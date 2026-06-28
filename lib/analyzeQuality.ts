@@ -96,6 +96,31 @@ function calculateEstimatedRate(
   return null;
 }
 
+function findTopPieceDisplayName(
+  rows: ValidRow[],
+  topPieceCode: string | undefined,
+): string | null {
+  if (!topPieceCode) return null;
+
+  const descriptions = new Map<string, number>();
+
+  for (const { row, noOk } of rows) {
+    const code = row.cod_pieza?.trim() || "Sin dato";
+    const description = row.descripcion_pieza?.trim();
+
+    if (code === topPieceCode && description) {
+      descriptions.set(description, (descriptions.get(description) ?? 0) + noOk);
+    }
+  }
+
+  const mainDescription = Array.from(descriptions.entries()).sort(
+    ([descriptionA, totalA], [descriptionB, totalB]) =>
+      totalB - totalA || descriptionA.localeCompare(descriptionB, "es"),
+  )[0]?.[0];
+
+  return mainDescription ?? topPieceCode;
+}
+
 export function analyzeQuality(rows: RawCsvRow[], columns: string[]): QualityAnalysis {
   const availableColumns = new Set(columns.map(toInternalColumnName));
   const validRows: ValidRow[] = [];
@@ -114,14 +139,17 @@ export function analyzeQuality(rows: RawCsvRow[], columns: string[]): QualityAna
   }
 
   const totalNoOk = validRows.reduce((total, row) => total + row.noOk, 0);
+  const failureModes = buildRanking(validRows, "modo_falla", totalNoOk);
+  const pieces = buildRanking(validRows, "cod_pieza", totalNoOk);
 
   return {
     totalNoOk,
     validRows: validRows.length,
     discardedRows,
+    topPieceDisplayName: findTopPieceDisplayName(validRows, pieces[0]?.label),
     estimatedRate: calculateEstimatedRate(validRows, availableColumns, totalNoOk),
-    failureModes: buildRanking(validRows, "modo_falla", totalNoOk),
-    pieces: buildRanking(validRows, "cod_pieza", totalNoOk),
+    failureModes,
+    pieces,
     operations: availableColumns.has("operacion")
       ? buildRanking(validRows, "operacion", totalNoOk)
       : null,
