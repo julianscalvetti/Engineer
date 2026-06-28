@@ -9,3 +9,8 @@ data/csv/*
 *.xlsx
 *.xlsm
 *.csv
+
+# Datasets ficticios versionables
+!data/samples/*.csv
+!data/samples/README.md
+!data/samples/.gitkeep
