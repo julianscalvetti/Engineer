@@ -137,6 +137,7 @@ button, input { font: inherit; }
 .notice-body { display: grid; gap: 10px; }
 .notice-body p { margin: 0; color: #35443f; font-size: 0.9rem; line-height: 1.55; }
 .notice-body strong { color: var(--text); }
+.notice-body .global-findings-note { color: var(--muted); font-size: 0.78rem; }
 .notice-priority { display: flex; align-items: baseline; gap: 10px; margin-top: 18px; padding-top: 15px; border-top: 1px solid #d4e8e0; }
 .notice-priority span { color: var(--brand); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .notice-priority strong { font-size: 0.9rem; }

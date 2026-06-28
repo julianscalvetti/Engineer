@@ -8,7 +8,7 @@ export function generateNotice(analysis: QualityAnalysis): QualityNoticeData | n
   const topPiece = analysis.pieces[0];
   const topFailureMode = analysis.failureModes[0];
 
-  if (!topPiece || !topFailureMode) return null;
+  if (!topPiece || !topFailureMode || !analysis.combinedPriority) return null;
 
   const piece = analysis.topPieceDisplayName ?? topPiece.label;
   const operation = firstUsableLabel(analysis.operations);
@@ -23,8 +23,6 @@ export function generateNotice(analysis: QualityAnalysis): QualityNoticeData | n
     operation,
     shift,
     estimatedRate: analysis.estimatedRate,
-    priority: [piece, operation, topFailureMode.label].filter(
-      (value): value is string => Boolean(value),
-    ),
+    combinedPriority: analysis.combinedPriority,
   };
 }

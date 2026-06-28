@@ -1,4 +1,5 @@
 import type {
+  CombinedPriority,
   EstimatedRate,
   QualityAnalysis,
   RankingItem,
@@ -118,7 +119,72 @@ function findTopPieceDisplayName(
       totalB - totalA || descriptionA.localeCompare(descriptionB, "es"),
   )[0]?.[0];
 
-  return mainDescription ?? topPieceCode;
+  return formatPieceDisplayName(topPieceCode, mainDescription);
+}
+
+function formatPieceDisplayName(code: string, description?: string): string {
+  if (description && code !== "Sin dato") return `${description} (${code})`;
+  return description ?? code;
+}
+
+function calculateCombinedPriority(
+  rows: ValidRow[],
+  includeOperation: boolean,
+): CombinedPriority | null {
+  const groups = new Map<
+    string,
+    {
+      pieceCode: string;
+      operation: string | null;
+      failureMode: string;
+      totalNoOk: number;
+      descriptions: Map<string, number>;
+    }
+  >();
+
+  for (const { row, noOk } of rows) {
+    const pieceCode = row.cod_pieza?.trim() || "Sin dato";
+    const operation = includeOperation ? row.operacion?.trim() || null : null;
+    const failureMode = row.modo_falla?.trim() || "Sin dato";
+    const key = JSON.stringify([pieceCode, operation, failureMode]);
+    const group = groups.get(key) ?? {
+      pieceCode,
+      operation,
+      failureMode,
+      totalNoOk: 0,
+      descriptions: new Map<string, number>(),
+    };
+    const description = row.descripcion_pieza?.trim();
+
+    group.totalNoOk += noOk;
+    if (description) {
+      group.descriptions.set(description, (group.descriptions.get(description) ?? 0) + noOk);
+    }
+    groups.set(key, group);
+  }
+
+  const topGroup = Array.from(groups.values()).sort(
+    (a, b) =>
+      b.totalNoOk - a.totalNoOk ||
+      JSON.stringify([a.pieceCode, a.operation, a.failureMode]).localeCompare(
+        JSON.stringify([b.pieceCode, b.operation, b.failureMode]),
+        "es",
+      ),
+  )[0];
+
+  if (!topGroup) return null;
+
+  const mainDescription = Array.from(topGroup.descriptions.entries()).sort(
+    ([descriptionA, totalA], [descriptionB, totalB]) =>
+      totalB - totalA || descriptionA.localeCompare(descriptionB, "es"),
+  )[0]?.[0];
+
+  return {
+    piece: formatPieceDisplayName(topGroup.pieceCode, mainDescription),
+    operation: topGroup.operation,
+    failureMode: topGroup.failureMode,
+    totalNoOk: topGroup.totalNoOk,
+  };
 }
 
 export function analyzeQuality(rows: RawCsvRow[], columns: string[]): QualityAnalysis {
@@ -147,6 +213,10 @@ export function analyzeQuality(rows: RawCsvRow[], columns: string[]): QualityAna
     validRows: validRows.length,
     discardedRows,
     topPieceDisplayName: findTopPieceDisplayName(validRows, pieces[0]?.label),
+    combinedPriority: calculateCombinedPriority(
+      validRows,
+      availableColumns.has("operacion"),
+    ),
     estimatedRate: calculateEstimatedRate(validRows, availableColumns, totalNoOk),
     failureModes,
     pieces,

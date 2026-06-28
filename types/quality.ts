@@ -30,11 +30,19 @@ export interface EstimatedRate {
   percentage: number;
 }
 
+export interface CombinedPriority {
+  piece: string;
+  operation: string | null;
+  failureMode: string;
+  totalNoOk: number;
+}
+
 export interface QualityAnalysis {
   totalNoOk: number;
   validRows: number;
   discardedRows: number;
   topPieceDisplayName: string | null;
+  combinedPriority: CombinedPriority | null;
   estimatedRate: EstimatedRate | null;
   failureModes: RankingItem[];
   pieces: RankingItem[];
@@ -51,7 +59,7 @@ export interface QualityNoticeData {
   operation: string | null;
   shift: string | null;
   estimatedRate: EstimatedRate | null;
-  priority: string[];
+  combinedPriority: CombinedPriority;
 }
 
 export interface ColumnValidation {
