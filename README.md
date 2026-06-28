@@ -1,6 +1,6 @@
 # Quality AI MVP
 
-Aplicación local en Next.js y TypeScript para cargar un CSV exportado desde Excel y validar si contiene las columnas mínimas del MVP de calidad industrial.
+Aplicación local en Next.js y TypeScript para validar un CSV exportado desde Excel y calcular indicadores básicos de calidad industrial.
 
 ## Uso local
 

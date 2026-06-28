@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { analyzeQuality } from "@/lib/analyzeQuality";
 import type { CsvFileResult, ValidationStatus } from "@/types/quality";
+import ResultsTables from "./ResultsTables";
 
 const STATUS_CONTENT: Record<ValidationStatus, { title: string; description: string }> = {
   invalid: {
@@ -37,11 +39,12 @@ function ColumnList({ title, columns, tone }: { title: string; columns: string[]
 }
 
 export default function ValidationPanel({ result }: { result: CsvFileResult }) {
-  const [readyMessage, setReadyMessage] = useState(false);
+  const [analysis, setAnalysis] = useState<ReturnType<typeof analyzeQuality> | null>(null);
   const statusContent = STATUS_CONTENT[result.status];
   const canContinue = result.status !== "invalid";
 
   return (
+    <>
     <div className="validation-panel" aria-live="polite">
       <div className={`status-banner ${result.status}`}>
         <span className="status-mark" aria-hidden="true">
@@ -68,16 +71,13 @@ export default function ValidationPanel({ result }: { result: CsvFileResult }) {
           className="primary-button"
           type="button"
           disabled={!canContinue}
-          onClick={() => setReadyMessage(true)}
+          onClick={() => setAnalysis(analyzeQuality(result.rows, result.columns))}
         >
           Continuar al procesamiento
         </button>
-        {readyMessage && canContinue && (
-          <p className="ready-message" role="status">
-            El archivo está listo. El procesamiento se incorporará en la próxima etapa.
-          </p>
-        )}
       </div>
     </div>
+    {analysis && <ResultsTables analysis={analysis} />}
+    </>
   );
 }

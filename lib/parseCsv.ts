@@ -1,8 +1,6 @@
 import Papa from "papaparse";
-import type { CsvFileResult } from "@/types/quality";
+import type { CsvFileResult, RawCsvRow } from "@/types/quality";
 import { validateColumns } from "./validateColumns";
-
-type CsvRow = Record<string, string>;
 
 const REPLACEMENT_CHARACTER = "�";
 const GENERATED_COLUMN_PATTERN = /^_\d+$/;
@@ -11,8 +9,8 @@ function cleanHeader(header: string): string {
   return header.replace(/^\uFEFF/, "").replace(/^ï»¿/, "").trim();
 }
 
-function parseText(text: string): Papa.ParseResult<CsvRow> {
-  return Papa.parse<CsvRow>(text, {
+function parseText(text: string): Papa.ParseResult<RawCsvRow> {
+  return Papa.parse<RawCsvRow>(text, {
     header: true,
     skipEmptyLines: "greedy",
     delimitersToGuess: [",", ";", "\t"],
@@ -20,7 +18,7 @@ function parseText(text: string): Papa.ParseResult<CsvRow> {
   });
 }
 
-function getVisibleColumns(result: Papa.ParseResult<CsvRow>): string[] {
+function getVisibleColumns(result: Papa.ParseResult<RawCsvRow>): string[] {
   return (result.meta.fields ?? []).filter(
     (column) =>
       Boolean(column) &&
@@ -48,6 +46,7 @@ export async function parseCsv(file: File): Promise<CsvFileResult> {
       fileName: file.name,
       rowCount: parsed.data.length,
       columns,
+      rows: parsed.data,
       ...validateColumns(columns),
     };
   } catch (error) {

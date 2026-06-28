@@ -16,6 +16,31 @@ export const RECOMMENDED_COLUMNS = [
 
 export type ValidationStatus = "invalid" | "warning" | "valid";
 
+export type RawCsvRow = Record<string, string | undefined>;
+
+export interface RankingItem {
+  label: string;
+  totalNoOk: number;
+  percentage: number;
+}
+
+export interface EstimatedRate {
+  denominatorColumn: "TOTAL CONTROLADO" | "CANT TOTAL" | "TOTAL PRODUCIDO";
+  denominatorTotal: number;
+  percentage: number;
+}
+
+export interface QualityAnalysis {
+  totalNoOk: number;
+  validRows: number;
+  discardedRows: number;
+  estimatedRate: EstimatedRate | null;
+  failureModes: RankingItem[];
+  pieces: RankingItem[];
+  operations: RankingItem[] | null;
+  shifts: RankingItem[] | null;
+}
+
 export interface ColumnValidation {
   missingRequired: string[];
   missingRecommended: string[];
@@ -26,4 +51,5 @@ export interface CsvFileResult extends ColumnValidation {
   fileName: string;
   rowCount: number;
   columns: string[];
+  rows: RawCsvRow[];
 }
