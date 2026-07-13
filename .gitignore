@@ -1,5 +1,7 @@
 node_modules/
 .next/
+.env*
+!.env.example
 
 # Archivos reales y exportaciones locales
 data/raw/*
@@ -14,3 +16,15 @@ data/csv/*
 !data/samples/*.csv
 !data/samples/README.md
 !data/samples/.gitkeep
+
+# Respaldos locales
+archive/git-broken-backup/
+.git_broken_backup/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.temp
+~$*

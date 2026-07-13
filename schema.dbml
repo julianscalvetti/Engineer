@@ -1,0 +1,223 @@
+Project quality_saas_manufacturing {
+  database_type: "PostgreSQL"
+  Note: "Primer boceto relacional para control de calidad en manufactura discreta."
+}
+
+Table companies {
+  id uuid [pk]
+  name text [not null, unique]
+  tax_identifier text
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+}
+
+Table plants {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  code text [not null]
+  name text [not null]
+  location text
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (company_id, code) [unique]
+  }
+}
+
+Table products {
+  id uuid [pk]
+  plant_id uuid [not null, ref: > plants.id]
+  code text [not null]
+  name text [not null]
+  description text
+  object_type text [not null, default: 'product']
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (plant_id, code) [unique]
+  }
+}
+
+Table operations {
+  id uuid [pk]
+  plant_id uuid [not null, ref: > plants.id]
+  code text [not null]
+  name text [not null]
+  description text
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (plant_id, code) [unique]
+  }
+}
+
+Table product_operations {
+  id uuid [pk]
+  plant_id uuid [not null, ref: > plants.id]
+  product_id uuid [not null, ref: > products.id]
+  operation_id uuid [not null, ref: > operations.id]
+  sequence_number integer [not null]
+  is_mandatory boolean [not null, default: true]
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (product_id, sequence_number) [unique]
+    (product_id, operation_id) [unique]
+  }
+}
+
+Table resources {
+  id uuid [pk]
+  plant_id uuid [not null, ref: > plants.id]
+  code text [not null]
+  name text [not null]
+  resource_type text [not null]
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (plant_id, code) [unique]
+  }
+}
+
+Table operation_resources {
+  id uuid [pk]
+  plant_id uuid [not null, ref: > plants.id]
+  operation_id uuid [not null, ref: > operations.id]
+  resource_id uuid [not null, ref: > resources.id]
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (operation_id, resource_id) [unique]
+  }
+}
+
+Table control_characteristics {
+  id uuid [pk]
+  plant_id uuid [not null, ref: > plants.id]
+  product_operation_id uuid [not null, ref: > product_operations.id]
+  code text [not null]
+  name text [not null]
+  data_type text [not null]
+  unit_of_measure text
+  criticality text [not null, default: 'medium']
+  control_method text
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (product_operation_id, code) [unique]
+  }
+}
+
+Table acceptance_criteria {
+  id uuid [pk]
+  control_characteristic_id uuid [not null, ref: > control_characteristics.id]
+  status text [not null, default: 'active']
+  target_numeric_value numeric
+  min_numeric_value numeric
+  max_numeric_value numeric
+  tolerance_numeric_value numeric
+  expected_boolean_value boolean
+  expected_text_value text
+  valid_from timestamptz [not null]
+  valid_to timestamptz
+  notes text
+  created_at timestamptz [not null]
+
+  Note: "En PostgreSQL, schema.sql impide solapamiento temporal de criterios activos por caracteristica."
+}
+
+Table acceptance_criterion_allowed_values {
+  acceptance_criterion_id uuid [not null, ref: > acceptance_criteria.id]
+  allowed_value text [not null]
+
+  indexes {
+    (acceptance_criterion_id, allowed_value) [pk]
+  }
+}
+
+Table control_records {
+  id uuid [pk]
+  plant_id uuid [not null, ref: > plants.id]
+  control_characteristic_id uuid [not null, ref: > control_characteristics.id]
+  acceptance_criterion_id uuid [not null, ref: > acceptance_criteria.id]
+  resource_id uuid [ref: > resources.id]
+  recorded_at timestamptz [not null]
+  shift text
+  production_order text
+  lot_code text
+  operator_name text
+  inspected_quantity numeric
+  quantity_unit_of_measure text
+  observed_numeric_value numeric
+  observed_boolean_value boolean
+  observed_category_value text
+  observed_text_value text
+  conformity_status text [not null]
+  observations text
+  created_at timestamptz [not null]
+
+  Note: "No duplica product_id ni operation_id; se obtienen desde control_characteristics -> product_operations."
+}
+
+Table failure_modes {
+  id uuid [pk]
+  plant_id uuid [not null, ref: > plants.id]
+  product_operation_id uuid [ref: > product_operations.id]
+  control_characteristic_id uuid [ref: > control_characteristics.id]
+  code text [not null]
+  description text [not null]
+  severity text [not null, default: 'medium']
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (plant_id, code) [unique]
+  }
+}
+
+Table dispositions {
+  id uuid [pk]
+  company_id uuid [not null, ref: > companies.id]
+  code text [not null]
+  name text [not null]
+  description text
+  status text [not null, default: 'active']
+  created_at timestamptz [not null]
+
+  indexes {
+    (company_id, code) [unique]
+  }
+}
+
+Table record_failures {
+  id uuid [pk]
+  control_record_id uuid [not null, ref: > control_records.id]
+  failure_mode_id uuid [ref: > failure_modes.id]
+  disposition_id uuid [ref: > dispositions.id]
+  affected_quantity numeric
+  quantity_unit_of_measure text
+  manual_description text
+  notes text
+  created_at timestamptz [not null]
+}
+
+Table corrective_actions {
+  id uuid [pk]
+  record_failure_id uuid [not null, ref: > record_failures.id]
+  action_type text [not null]
+  description text [not null]
+  responsible text
+  created_at timestamptz [not null]
+  target_date date
+  closed_at timestamptz
+  status text [not null, default: 'open']
+  effectiveness_verification text
+  notes text
+}

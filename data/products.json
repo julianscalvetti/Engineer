@@ -1,0 +1,56 @@
+[
+  {
+    "code": "P-1001",
+    "name": "Eje de transmision 32 mm",
+    "operations": [
+      {
+        "station": "OP-10 Torneado",
+        "failureModes": ["Diametro fuera de tolerancia", "Longitud incorrecta", "Marcas de herramienta"]
+      },
+      {
+        "station": "OP-20 Rectificado",
+        "failureModes": ["Rugosidad excesiva", "Ovalizacion", "Quemadura de rectificado"]
+      },
+      {
+        "station": "OP-30 Inspeccion final",
+        "failureModes": ["Golpe superficial", "Oxidacion", "Identificacion incorrecta"]
+      }
+    ]
+  },
+  {
+    "code": "P-2040",
+    "name": "Carcasa de bomba industrial",
+    "operations": [
+      {
+        "station": "OP-10 Fundicion",
+        "failureModes": ["Porosidad", "Fisura", "Falta de llenado"]
+      },
+      {
+        "station": "OP-20 Mecanizado",
+        "failureModes": ["Posicion de agujero", "Rosca defectuosa", "Rebaba"]
+      },
+      {
+        "station": "OP-30 Prueba de estanqueidad",
+        "failureModes": ["Fuga en cuerpo", "Fuga en conexion", "Presion fuera de especificacion"]
+      }
+    ]
+  },
+  {
+    "code": "P-3185",
+    "name": "Soporte estructural soldado",
+    "operations": [
+      {
+        "station": "OP-10 Corte",
+        "failureModes": ["Dimension de corte", "Borde irregular", "Material incorrecto"]
+      },
+      {
+        "station": "OP-20 Soldadura",
+        "failureModes": ["Falta de penetracion", "Porosidad de soldadura", "Cordón discontinuo"]
+      },
+      {
+        "station": "OP-30 Pintura",
+        "failureModes": ["Espesor insuficiente", "Falta de cobertura", "Contaminacion superficial"]
+      }
+    ]
+  }
+]
