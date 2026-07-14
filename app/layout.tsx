@@ -6,8 +6,8 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Quality Control | Captura de fallas",
-  description: "Registro local de fallas industriales asistido por OCR",
+  title: "Engineer",
+  description: "Sistema de calidad industrial.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
