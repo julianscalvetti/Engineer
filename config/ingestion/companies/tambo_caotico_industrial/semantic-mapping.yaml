@@ -1,0 +1,206 @@
+mapping_version: semantic-mapping-v1
+mapping_id: tambo-caotico-industrial-semantic-mapping-v1-draft
+source_file_name: "tambo_caotico_industrial.xlsx"
+source_file_sha256: "b234dcdb23f563a4adabbf379bd551ff374176b0223f6a4f3c46607591d166fa"
+source_selection_path: source-selection.yaml
+status: draft
+company_context: tambo_caotico_industrial
+assumptions:
+  - "MP-06 uses generic source_column_selector to disambiguate duplicated headers without source-specific engine logic."
+  - "The duplicated CONDUCTIVIDAD_MS columns are selected by column_letter."
+unresolved_decisions:
+  - "FORMULA_ALERTA is preserved as derived_ignore because formulas are not a normalized operational concept in the current mapping model."
+  - "OBSERVACIONES_OPERARIO is preserved as derived_ignore because free-text control notes do not have a canonical field in the current mapping model."
+  - "MAESTRO_SUCIO contains duplicate animal ids; this test does not resolve catalog quality issues."
+
+sources:
+  - id: animals
+    layout: row_table
+    sheet: "MAESTRO_SUCIO"
+    header_row: 1
+    data_range: "A1:D4"
+    fields:
+      - source_column: "ID_ANIMAL"
+        semantic_field: product.external_code
+        data_type: string
+        required: true
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "RAZA"
+        semantic_field: product.name
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "FECHA_ALTA"
+        semantic_field: derived_ignore.start_date
+        data_type: date
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - parse_date
+        preserve_raw_value: true
+      - source_column: "HISTORIAL_MEDICO"
+        semantic_field: derived_ignore.medical_history
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+
+  - id: controls
+    layout: row_table
+    sheet: "REGISTRO_ORDEÑE"
+    header_row: 4
+    data_range: "A4:N5004"
+    depends_on:
+      - animals
+    fields:
+      - source_column: "FECHA CONTROL"
+        semantic_field: control.occurred_at
+        data_type: date
+        required: true
+        treatment: direct
+        transformations:
+          - parse_date
+        preserve_raw_value: true
+      - source_column: "ID_ANIMAL"
+        semantic_field: product.external_code
+        data_type: string
+        required: true
+        treatment: lookup
+        transformations:
+          - trim
+          - preserve_string
+        lookup:
+          catalog_source: animals
+          catalog_match_field: product.external_code
+          input_field: product.external_code
+          required: true
+          on_unresolved: pending_review
+          on_ambiguous: rejected
+          preserve_input_value: true
+        preserve_raw_value: true
+      - source_column: "TURNO"
+        semantic_field: control.shift
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "OPERADOR_PLANTA"
+        semantic_field: control.operator
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "STATUS_ANIMAL"
+        semantic_field: control.conformity_status
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "FORMULA_ALERTA"
+        semantic_field: derived_ignore.alert_formula
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "OBSERVACIONES_OPERARIO"
+        semantic_field: derived_ignore.operator_observations
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+    measurements:
+      - id: milk_volume
+        characteristic:
+          external_code: milk_volume
+          name: Milk volume
+        value:
+          source_column: "LITROS_ORDEÑE"
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+        unit: L
+      - id: conductivity_1
+        characteristic:
+          external_code: conductivity_1
+          name: Conductivity 1
+        value:
+          source_column_selector:
+            column_letter: F
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+      - id: conductivity_2
+        characteristic:
+          external_code: conductivity_2
+          name: Conductivity 2
+        value:
+          source_column_selector:
+            column_letter: G
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+      - id: milk_temperature
+        characteristic:
+          external_code: milk_temperature
+          name: Milk temperature
+        value:
+          source_column: "TEMPERATURA_LECHE"
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+        unit: C
+      - id: butterfat
+        characteristic:
+          external_code: butterfat
+          name: Butterfat
+        value:
+          source_column: "GRASA_BUTIRICA_%"
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+        unit: percent
+      - id: somatic_cells
+        characteristic:
+          external_code: somatic_cells
+          name: Somatic cells
+        value:
+          source_column: "CELULAS_SOMATICAS"
+          data_type: integer
+          required: false
+          transformations:
+            - parse_integer
+          preserve_raw_value: true

@@ -1,0 +1,220 @@
+file_name: "Registro Control Final ROMET - Profiling .xlsx"
+file_sha256: "51623594ea17a2ee02c92730d0dfd0716f88d5e6f6153138c79138e1c87370ab"
+profile_version: "technical-profiler-v1.1.1"
+generated_at: "2026-07-17T03:46:40.847Z"
+approved_at: "2026-07-17T00:51:17-03:00"
+approval_status: approved
+approved_for: romet_pilot_v1
+
+sheets:
+  - name: "FORMULARIO"
+    suggested_class: form_like
+    suggested_range: "D29:F30"
+    suggestion_confidence: 0.65
+    needs_human_review: true
+    review_reasons:
+      - low_suggestion_confidence
+      - mixed_form_report_table_signals
+      - main_block_small_fraction_of_sheet
+      - merged_cells_present
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review for ROMET pilot v1; technical suggestion is form-like and not selected as an ingestion source."
+    reviewed_by: human
+
+  - name: "CARGA"
+    suggested_class: form_like
+    suggested_range: "D28:F30"
+    suggestion_confidence: 0.65
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - low_suggestion_confidence
+      - mixed_form_report_table_signals
+      - main_block_small_fraction_of_sheet
+      - merged_cells_present
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review for ROMET pilot v1; technical suggestion is form-like and not selected as an ingestion source."
+    reviewed_by: human
+
+  - name: "BASE DE REGISTRO"
+    suggested_class: tabular_candidate
+    suggested_range: "A1:R23942"
+    suggestion_confidence: 0.967
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+      - merged_cells_present
+    final_decision: include
+    final_range: "A1:R23942"
+    final_header_row: 1
+    decision_reason: "Included by human review as a primary ROMET pilot v1 source; profiler uncertainty is retained for downstream review."
+    reviewed_by: human
+
+  - name: "Total producido"
+    suggested_class: tabular_candidate
+    suggested_range: "A2:H3529"
+    suggestion_confidence: 0.961
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+      - main_block_small_fraction_of_sheet
+      - merged_cells_present
+    final_decision: defer
+    final_range: "A2:H3529"
+    final_header_row: 2
+    decision_reason: "Deferred by human review; detected range is preserved but this sheet is not approved for ROMET pilot v1 ingestion."
+    reviewed_by: human
+
+  - name: "PRODUCTOS"
+    suggested_class: tabular_candidate
+    suggested_range: "A3:C19"
+    suggestion_confidence: 0.972
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+      - main_block_small_fraction_of_sheet
+      - merged_cells_present
+    final_decision: include
+    final_range: "A1:C19"
+    final_header_row: 1
+    decision_reason: "Included by human review as a ROMET pilot v1 source; the automatically suggested range was corrected because the real headers are in row 1."
+    reviewed_by: human
+
+  - name: "Hoja1"
+    suggested_class: empty
+    suggested_range: null
+    suggestion_confidence: 1
+    needs_human_review: false
+    review_reasons: []
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review because the sheet is empty."
+    reviewed_by: human
+
+  - name: "Hoja2"
+    suggested_class: empty
+    suggested_range: null
+    suggestion_confidence: 1
+    needs_human_review: false
+    review_reasons: []
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review because the sheet is empty."
+    reviewed_by: human
+
+  - name: "Tablas1"
+    suggested_class: form_like
+    suggested_range: "B31:D39"
+    suggestion_confidence: 0.65
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - low_suggestion_confidence
+      - mixed_form_report_table_signals
+      - main_block_small_fraction_of_sheet
+      - merged_cells_present
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review for ROMET pilot v1; not selected as an ingestion source."
+    reviewed_by: human
+
+  - name: "Tablas2"
+    suggested_class: tabular_candidate
+    suggested_range: "B25:C37"
+    suggestion_confidence: 0.97
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+      - main_block_small_fraction_of_sheet
+      - merged_cells_present
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review for ROMET pilot v1; not selected as an ingestion source despite tabular technical suggestion."
+    reviewed_by: human
+
+  - name: "Seguimiento"
+    suggested_class: tabular_candidate
+    suggested_range: "A24:HK53"
+    suggestion_confidence: 0.997
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+      - merged_cells_present
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review for ROMET pilot v1; not selected as an ingestion source despite tabular technical suggestion."
+    reviewed_by: human
+
+  - name: "Indicador RO"
+    suggested_class: form_like
+    suggested_range: "B1:X5"
+    suggestion_confidence: 0.65
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - low_suggestion_confidence
+      - mixed_form_report_table_signals
+      - merged_cells_present
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review for ROMET pilot v1; indicator-style sheet is not selected as an ingestion source."
+    reviewed_by: human
+
+  - name: "Indicador por Puesto"
+    suggested_class: tabular_candidate
+    suggested_range: "B1:X74"
+    suggestion_confidence: 0.679
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - low_suggestion_confidence
+      - mixed_form_report_table_signals
+      - merged_cells_present
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded by human review for ROMET pilot v1; uncertainty is retained and the sheet is not selected as an ingestion source."
+    reviewed_by: human
+
+  - name: "OPERACIONES"
+    suggested_class: tabular_candidate
+    suggested_range: "A2:C9"
+    suggestion_confidence: 0.89
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - main_block_small_fraction_of_sheet
+    final_decision: include
+    final_range: "A1:R9"
+    final_header_row: 1
+    decision_reason: "Included by human review as a ROMET pilot v1 source; this sheet is a wide_columns_to_rows matrix with product codes in row 1 and associated operations in subsequent rows."
+    reviewed_by: human
+
+  - name: "MODO DE FALLA"
+    suggested_class: tabular_candidate
+    suggested_range: "P15:Q26"
+    suggestion_confidence: 0.932
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - main_block_small_fraction_of_sheet
+    final_decision: include
+    final_range: "A1:AG43"
+    final_header_row: 1
+    decision_reason: "Included by human review as a ROMET pilot v1 source; row 1 contains product-operation composite headers and subsequent rows contain allowed failure modes."
+    reviewed_by: human

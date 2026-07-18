@@ -1,0 +1,47 @@
+file_name: "neon_quality_control.xlsx"
+file_sha256: "c2ca5e147909ab42544c6bd013a9464586445f8b52268f1fa1f8242654ccbba7"
+profile_version: "technical-profiler-v1.1.1"
+generated_at: "2026-07-17T18:59:56.337Z"
+approval_status: approved
+approved_for: mp_06_configuration_only_execution
+
+sheets:
+  - name: "INSPECCION_NEON_LED"
+    suggested_class: tabular_candidate
+    suggested_range: "A6:L4006"
+    suggestion_confidence: 0.976
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+    final_decision: include
+    final_range: "A6:L4006"
+    final_header_row: 6
+    decision_reason: "Included as the MP-06 control source."
+    reviewed_by: human
+
+  - name: "MAESTRO_COMPONENTES"
+    suggested_class: tabular_candidate
+    suggested_range: "A1:D5"
+    suggestion_confidence: 0.952
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+    final_decision: include
+    final_range: "A1:D5"
+    final_header_row: 1
+    decision_reason: "Included as the available component catalog source."
+    reviewed_by: human
+
+  - name: "REPORTE_MENSUAL"
+    suggested_class: tabular_candidate
+    suggested_range: "A2:C4"
+    suggestion_confidence: 0.9
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded for MP-05 because it is an aggregate report, not a control source."
+    reviewed_by: human

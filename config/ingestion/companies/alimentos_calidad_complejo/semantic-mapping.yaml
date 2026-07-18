@@ -1,0 +1,219 @@
+mapping_version: semantic-mapping-v1
+mapping_id: alimentos-calidad-complejo-semantic-mapping-v1-draft
+source_file_name: "alimentos_calidad_complejo.xlsx"
+source_file_sha256: "12e333802ed17c63a4e69cd7f073743a577645fd2d764378f54b10fa17ba9c4f"
+source_selection_path: source-selection.yaml
+status: draft
+company_context: alimentos_calidad_complejo
+assumptions:
+  - "Esta configuracion prueba una segunda industria usando solo primitivas existentes del motor."
+  - "DASHBOARD_CALIDAD se excluye por ser una salida agregada."
+  - "MAESTRO_RECETAS se usa como catalogo disponible de productos/recetas, aunque no contiene todos los PRODUCTO_ID observados en PRODUCCION_DIARIA."
+  - "Litros procesados se preserva como derived_ignore.* hasta definir si representa cantidad de proceso o medicion operativa."
+unresolved_decisions:
+  - "Definir si litros procesados debe tener un contrato semantico como cantidad de proceso."
+  - "Definir si COSTO_PERDIDA debe tener un campo economico canonico o permanecer como contexto de desvio."
+  - "Completar o aprobar el catalogo de productos: PRODUCCION_DIARIA contiene PRODUCTO_ID que no aparecen en MAESTRO_RECETAS."
+
+sources:
+  - id: products
+    layout: row_table
+    sheet: "MAESTRO_RECETAS"
+    header_row: 1
+    data_range: "A1:E3"
+    fields:
+      - source_column: "PRODUCTO_ID"
+        semantic_field: product.external_code
+        data_type: string
+        required: true
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "TEMP_MIN"
+        semantic_field: derived_ignore.recipe_temperature_min_c
+        data_type: decimal
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - parse_decimal
+        preserve_raw_value: true
+      - source_column: "TEMP_MAX"
+        semantic_field: derived_ignore.recipe_temperature_max_c
+        data_type: decimal
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - parse_decimal
+        preserve_raw_value: true
+      - source_column: "PH_MIN"
+        semantic_field: derived_ignore.recipe_ph_min
+        data_type: decimal
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - parse_decimal
+        preserve_raw_value: true
+      - source_column: "PH_MAX"
+        semantic_field: derived_ignore.recipe_ph_max
+        data_type: decimal
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - parse_decimal
+        preserve_raw_value: true
+
+  - id: controls
+    layout: row_table
+    sheet: "PRODUCCION_DIARIA"
+    header_row: 1
+    data_range: "A1:I2001"
+    depends_on:
+      - products
+    fields:
+      - source_column: "FECHA"
+        semantic_field: control.occurred_at
+        data_type: date
+        required: true
+        treatment: direct
+        transformations:
+          - parse_date
+        preserve_raw_value: true
+      - source_column: "LOTE"
+        semantic_field: control.lot_code
+        data_type: string
+        required: true
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "PRODUCTO_ID"
+        semantic_field: product.external_code
+        data_type: string
+        required: true
+        treatment: lookup
+        transformations:
+          - trim
+          - preserve_string
+        lookup:
+          catalog_source: products
+          catalog_match_field: product.external_code
+          input_field: product.external_code
+          required: true
+          on_unresolved: pending_review
+          on_ambiguous: rejected
+          preserve_input_value: true
+        preserve_raw_value: true
+      - source_column: "LITROS_PROCESADOS"
+        semantic_field: derived_ignore.processed_volume_liters
+        data_type: decimal
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - parse_decimal
+        preserve_raw_value: true
+      - source_column: "OPERADOR"
+        semantic_field: control.operator
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "TURNO"
+        semantic_field: control.shift
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "ESTADO_INOCUIDAD"
+        semantic_field: control.conformity_status
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+    measurements:
+      - id: pasteurization_temperature
+        characteristic:
+          external_code: pasteurization_temperature
+          name: Pasteurization temperature
+        value:
+          source_column: "TEMP_PASTEURIZACION"
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+        unit: C
+      - id: final_ph
+        characteristic:
+          external_code: final_ph
+          name: Final pH
+        value:
+          source_column: "PH_FINAL"
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+
+  - id: deviations
+    layout: row_table
+    sheet: "CONTROL_DESVIOS"
+    header_row: 1
+    data_range: "A1:D2"
+    depends_on:
+      - controls
+    fields:
+      - source_column: "LOTE"
+        semantic_field: control.lot_code
+        data_type: string
+        required: true
+        treatment: lookup
+        transformations:
+          - trim
+          - preserve_string
+        lookup:
+          catalog_source: controls
+          catalog_match_field: control.lot_code
+          input_field: control.lot_code
+          required: true
+          on_unresolved: pending_review
+          on_ambiguous: rejected
+          preserve_input_value: true
+        preserve_raw_value: true
+      - source_column: "TIPO_DESVIO"
+        semantic_field: failure_mode.name
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "ACCION_CORRECTIVA"
+        semantic_field: corrective_action.description
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "COSTO_PERDIDA"
+        semantic_field: derived_ignore.loss_cost
+        data_type: decimal
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - parse_decimal
+        preserve_raw_value: true

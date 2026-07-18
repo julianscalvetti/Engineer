@@ -1,0 +1,12 @@
+source:
+  company_key: romet
+  format: xlsx
+  sheets:
+    - name: Controles
+      header_row: 1
+
+profiling:
+  sample_values_limit: 10
+  calculate_sha256: true
+  inspect_formulas: true
+  execute_macros: false

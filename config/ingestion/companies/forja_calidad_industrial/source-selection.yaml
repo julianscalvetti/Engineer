@@ -1,0 +1,35 @@
+file_name: "forja_calidad_industrial.xlsx"
+file_sha256: "9d99662c9ca6e66d9971ba0956600d55bfc0e5ebffedd84f45e474db17308b32"
+profile_version: "technical-profiler-v1.1.1"
+generated_at: "2026-07-17T15:54:12.536Z"
+approval_status: approved
+approved_for: mp_04_configuration_only_validation
+
+sheets:
+  - name: "LOG_FORJA_PRODUCCION"
+    suggested_class: tabular_candidate
+    suggested_range: "E2:L2002"
+    suggestion_confidence: 0.987
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+      - merged_cells_present
+    final_decision: include
+    final_range: "E2:L2002"
+    final_header_row: 2
+    decision_reason: "Included as the production/control source for MP-04."
+    reviewed_by: human
+
+  - name: "MAESTRO_PIEZAS_OBSOLETAS"
+    suggested_class: tabular_candidate
+    suggested_range: "A1:C3"
+    suggestion_confidence: 0.933
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+    final_decision: include
+    final_range: "A1:C3"
+    final_header_row: 1
+    decision_reason: "Included as the available piece catalog source for MP-04."
+    reviewed_by: human

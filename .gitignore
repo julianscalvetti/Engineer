@@ -4,6 +4,11 @@ node_modules/
 !.env.example
 
 # Archivos reales y exportaciones locales
+data/raw/
+data/staging/
+data/curated/
+data/rejected/
+data/reports/
 data/raw/*
 !data/raw/.gitkeep
 data/csv/*

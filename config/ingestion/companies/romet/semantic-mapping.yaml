@@ -1,0 +1,345 @@
+mapping_version: semantic-mapping-v1
+mapping_id: romet-semantic-mapping-v1-draft
+source_file_name: "Registro Control Final ROMET - Profiling .xlsx"
+source_file_sha256: "51623594ea17a2ee02c92730d0dfd0716f88d5e6f6153138c79138e1c87370ab"
+source_selection_path: source-selection.yaml
+status: draft
+company_context: ROMET
+assumptions:
+  - "ROMET se usa solo como primera configuración de prueba del motor genérico."
+  - "Los nombres de hojas, columnas y valores especiales pertenecen a esta configuración, no al motor."
+  - "Las fuentes aprobadas son las marcadas como include en source-selection.yaml."
+unresolved_decisions:
+  - "Confirmar si operation.external_code debe persistirse cuando el regex no detecta un código."
+  - "Confirmar tratamiento semántico definitivo para SIN DEFECTO y OTROS *."
+
+sources:
+  - id: products
+    layout: row_table
+    sheet: "PRODUCTOS"
+    header_row: 1
+    data_range: "A1:C19"
+    fields:
+      - source_column: "COD PIEZA"
+        semantic_field: product.external_code
+        data_type: string
+        required: true
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "DENOMINACION"
+        semantic_field: product.name
+        data_type: string
+        required: true
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "CLIENTE"
+        semantic_field: customer.name
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        on_missing: warning
+        preserve_raw_value: true
+
+  - id: operations
+    layout: wide_columns_to_rows
+    sheet: "OPERACIONES"
+    header_row: 1
+    data_range: "A1:R9"
+    depends_on:
+      - products
+    column_header:
+      semantic_field: product.external_code
+      data_type: string
+      required: true
+      treatment: lookup
+      transformations:
+        - trim
+        - preserve_string
+      lookup:
+        catalog_source: products
+        catalog_match_field: product.external_code
+        input_field: product.external_code
+        required: true
+        on_unresolved: pending_review
+        on_ambiguous: rejected
+        preserve_input_value: true
+      preserve_raw_value: true
+    cell_value:
+      semantic_field: operation.raw_name
+      data_type: string
+      required: true
+      treatment: direct
+      transformations:
+        - trim
+        - normalize_whitespace
+      preserve_raw_value: true
+    fields:
+      - source_column: "__cell_value__"
+        semantic_field: operation.external_code
+        data_type: string
+        required: false
+        treatment: pending
+        transformations:
+          - extract_regex
+        regex: "^(OP_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)"
+        on_no_match: pending_review
+        fallback_value: null
+        preserve_raw_value: true
+
+  - id: failure_modes
+    layout: wide_columns_to_rows
+    sheet: "MODO DE FALLA"
+    header_row: 1
+    data_range: "A1:AG43"
+    depends_on:
+      - products
+      - operations
+    column_header:
+      semantic_field: source_composite_header
+      data_type: string
+      required: true
+      treatment: lookup
+      transformations:
+        - trim
+        - preserve_string
+      preserve_raw_value: true
+    cell_value:
+      semantic_field: failure_mode.name
+      data_type: string
+      required: true
+      treatment: direct
+      transformations:
+        - trim
+        - normalize_whitespace
+      preserve_raw_value: true
+    resolver:
+      type: pipeline
+      steps:
+        - type: longest_catalog_prefix
+          input_field: source_composite_header
+          catalog_source: products
+          catalog_field: product.external_code
+          output_field: product.external_code
+          remainder_output_field: unresolved_remainder
+        - type: transform_value
+          input_field: unresolved_remainder
+          output_field: normalized_remainder
+          transformations:
+            - type: regex_replace
+              pattern: "^_+"
+              replacement: ""
+        - type: scoped_catalog_lookup
+          input_field: normalized_remainder
+          catalog_source: operations
+          catalog_match_field: operation.external_code
+          output_field: operation.external_code
+          scope:
+            - catalog_field: product.external_code
+              value_field: product.external_code
+    semantic_review_values:
+      - "SIN DEFECTO"
+      - "OTROS *"
+
+  - id: controls
+    layout: row_table
+    sheet: "BASE DE REGISTRO"
+    header_row: 1
+    data_range: "A1:R23942"
+    depends_on:
+      - products
+      - operations
+      - failure_modes
+    fields:
+      - source_column: "FECHA"
+        semantic_field: control.occurred_at
+        data_type: date
+        required: true
+        treatment: direct
+        transformations:
+          - parse_date
+        preserve_raw_value: true
+      - source_column: "COD PIEZA"
+        semantic_field: product.external_code
+        data_type: string
+        required: true
+        treatment: lookup
+        transformations:
+          - trim
+          - preserve_string
+        lookup:
+          catalog_source: products
+          catalog_match_field: product.external_code
+          input_field: product.external_code
+          required: true
+          on_unresolved: pending_review
+          on_ambiguous: rejected
+          preserve_input_value: true
+        preserve_raw_value: true
+      - source_column: "OPERACIÓN"
+        semantic_field: operation.raw_name
+        data_type: string
+        required: true
+        treatment: lookup
+        transformations:
+          - trim
+          - normalize_whitespace
+        lookup:
+          catalog_source: operations
+          catalog_match_field: operation.raw_name
+          input_field: operation.raw_name
+          scope:
+            - catalog_field: product.external_code
+              value_field: product.external_code
+          required: true
+          on_unresolved: pending_review
+          on_ambiguous: rejected
+          preserve_input_value: true
+        preserve_raw_value: true
+      - source_column: "OPERACIÓN"
+        semantic_field: operation.external_code
+        data_type: string
+        required: false
+        treatment: pending
+        transformations:
+          - extract_regex
+        regex: "^(OP_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)"
+        on_no_match: pending_review
+        fallback_value: null
+        preserve_raw_value: true
+      - source_column: "TURNO"
+        semantic_field: control.shift
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "OPERADOR"
+        semantic_field: control.operator
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "MODO DE FALLA"
+        semantic_field: failure_mode.name
+        data_type: string
+        required: false
+        treatment: lookup
+        transformations:
+          - trim
+          - normalize_whitespace
+        lookup:
+          catalog_source: failure_modes
+          catalog_match_field: failure_mode.name
+          input_field: failure_mode.name
+          scope:
+            - catalog_field: product.external_code
+              value_field: product.external_code
+            - catalog_field: operation.external_code
+              value_field: operation.external_code
+          required: false
+          on_unresolved: pending_review
+          on_ambiguous: rejected
+          preserve_input_value: true
+        preserve_raw_value: true
+      - source_column: "CANT NO OK"
+        semantic_field: control_failure.quantity
+        data_type: integer
+        required: false
+        treatment: direct
+        transformations:
+          - parse_integer
+        preserve_raw_value: true
+      - source_column: "CANT TOTAL"
+        semantic_field: control.inspected_quantity
+        data_type: integer
+        required: true
+        treatment: direct
+        transformations:
+          - parse_integer
+        preserve_raw_value: true
+      - source_column: "DETALLE MODO DE FALLA"
+        semantic_field: control_failure.detail
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "MES - AÑO"
+        semantic_field: derived_ignore.month_year
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "DESCRIPCION PZA"
+        semantic_field: derived_ignore.product_description
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "CLIENTE"
+        semantic_field: derived_ignore.customer_name
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "Auxiliar"
+        semantic_field: derived_ignore.auxiliary
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "DPU"
+        semantic_field: derived_ignore.dpu
+        data_type: decimal
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "TOTAL CONTROLADO"
+        semantic_field: derived_ignore.total_controlled
+        data_type: integer
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "Auxiliar Fecha 6 meses"
+        semantic_field: derived_ignore.auxiliary_six_month_date
+        data_type: date
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "Auxiliar Fecha anual"
+        semantic_field: derived_ignore.auxiliary_annual_date
+        data_type: date
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "TOTAL PRODUCIDO"
+        semantic_field: derived_ignore.total_produced
+        data_type: integer
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true

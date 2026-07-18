@@ -5,15 +5,21 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "ingestion:profile": "tsx scripts/profile-xlsx.ts",
+    "ingestion:mapping:validate": "tsx scripts/validate-semantic-mapping.ts",
+    "ingestion:mapping:preview": "tsx scripts/execute-semantic-mapping.ts",
+    "test": "tsx scripts/test-profiler.ts && tsx scripts/test-semantic-mapping.ts",
     "start": "next start",
     "lint": "eslint ."
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
+    "exceljs": "^4.4.0",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
@@ -21,6 +27,7 @@
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.2.9",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.0"
   }
 }

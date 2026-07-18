@@ -1,0 +1,35 @@
+file_name: "tambo_caotico_industrial.xlsx"
+file_sha256: "b234dcdb23f563a4adabbf379bd551ff374176b0223f6a4f3c46607591d166fa"
+profile_version: "technical-profiler-v1.1.1"
+generated_at: "2026-07-17T18:59:56.527Z"
+approval_status: approved
+approved_for: mp_06_configuration_only_execution
+
+sheets:
+  - name: "REGISTRO_ORDEÑE"
+    suggested_class: tabular_candidate
+    suggested_range: "A4:L5004"
+    suggestion_confidence: 0.977
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+      - merged_cells_present
+    final_decision: include
+    final_range: "A4:N5004"
+    final_header_row: 4
+    decision_reason: "Included as the MP-06 control source, extending the profiler range to preserve the observations column."
+    reviewed_by: human
+
+  - name: "MAESTRO_SUCIO"
+    suggested_class: tabular_candidate
+    suggested_range: "A1:D4"
+    suggestion_confidence: 0.947
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+    final_decision: include
+    final_range: "A1:D4"
+    final_header_row: 1
+    decision_reason: "Included as the available animal catalog source."
+    reviewed_by: human

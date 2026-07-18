@@ -1,0 +1,181 @@
+mapping_version: semantic-mapping-v1
+mapping_id: neon-quality-control-semantic-mapping-v1-draft
+source_file_name: "neon_quality_control.xlsx"
+source_file_sha256: "c2ca5e147909ab42544c6bd013a9464586445f8b52268f1fa1f8242654ccbba7"
+source_selection_path: source-selection.yaml
+status: draft
+company_context: neon_quality_control
+assumptions:
+  - "MP-06 uses generic source_column_selector to disambiguate duplicated headers without source-specific engine logic."
+  - "The duplicated DEFECTO_ELECTRONICO columns are selected by header plus occurrence."
+unresolved_decisions:
+  - "FORMULA_COSTO is preserved as derived_ignore because formulas are not a normalized operational concept in the current mapping model."
+  - "NOTAS is preserved as derived_ignore because free-text control notes do not have a canonical field in the current mapping model."
+  - "REPORTE_MENSUAL is excluded because it is an aggregate report."
+
+sources:
+  - id: components
+    layout: row_table
+    sheet: "MAESTRO_COMPONENTES"
+    header_row: 1
+    data_range: "A1:D5"
+    fields:
+      - source_column: "ID_COMPONENTE"
+        semantic_field: product.external_code
+        data_type: string
+        required: true
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "TIPO"
+        semantic_field: product.name
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "COLOR_NEON"
+        semantic_field: derived_ignore.color
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "PROVEEDOR"
+        semantic_field: derived_ignore.supplier
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+
+  - id: controls
+    layout: row_table
+    sheet: "INSPECCION_NEON_LED"
+    header_row: 6
+    data_range: "A6:L4006"
+    fields:
+      - source_column: "FECHA_QA"
+        semantic_field: control.occurred_at
+        data_type: date
+        required: true
+        treatment: direct
+        transformations:
+          - parse_date
+        preserve_raw_value: true
+      - source_column: "ORDEN_TRABAJO"
+        semantic_field: control.lot_code
+        data_type: string
+        required: true
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "ENSAMBLADOR"
+        semantic_field: control.operator
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "MODELO_BASE"
+        semantic_field: product.external_code
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "DEFECTO_ACRILICO"
+        semantic_field: failure_mode.acrylic_defect
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column_selector:
+          header: "DEFECTO_ELECTRONICO"
+          occurrence: 1
+        semantic_field: failure_mode.electronic_defect_1
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column_selector:
+          header: "DEFECTO_ELECTRONICO"
+          occurrence: 2
+        semantic_field: failure_mode.electronic_defect_2
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+      - source_column: "ESTADO_FINAL"
+        semantic_field: control.conformity_status
+        data_type: string
+        required: false
+        treatment: direct
+        transformations:
+          - trim
+          - preserve_string
+        preserve_raw_value: true
+      - source_column: "FORMULA_COSTO"
+        semantic_field: derived_ignore.formula_cost
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations: []
+        preserve_raw_value: true
+      - source_column: "NOTAS"
+        semantic_field: derived_ignore.notes
+        data_type: string
+        required: false
+        treatment: derived_ignore
+        transformations:
+          - trim
+          - normalize_whitespace
+        preserve_raw_value: true
+    measurements:
+      - id: strip_length
+        characteristic:
+          external_code: strip_length
+          name: Strip length
+        value:
+          source_column: "METROS_TIRA_LED"
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+        unit: m
+      - id: output_voltage
+        characteristic:
+          external_code: output_voltage
+          name: Output voltage
+        value:
+          source_column: "VOLTAJE_SALIDA_12V"
+          data_type: decimal
+          required: false
+          transformations:
+            - parse_decimal
+          preserve_raw_value: true
+        unit: V

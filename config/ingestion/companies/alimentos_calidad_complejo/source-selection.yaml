@@ -1,0 +1,61 @@
+file_name: "alimentos_calidad_complejo.xlsx"
+file_sha256: "12e333802ed17c63a4e69cd7f073743a577645fd2d764378f54b10fa17ba9c4f"
+profile_version: "technical-profiler-v1.1.1"
+generated_at: "2026-07-17T14:48:31.133Z"
+approved_at: "2026-07-17T00:00:00-03:00"
+approval_status: approved
+approved_for: alimentos_calidad_complejo_config_only_assessment
+
+sheets:
+  - name: "PRODUCCION_DIARIA"
+    suggested_class: tabular_candidate
+    suggested_range: "A1:I2001"
+    suggestion_confidence: 0.998
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+    final_decision: include
+    final_range: "A1:I2001"
+    final_header_row: 1
+    decision_reason: "Included as the primary production/control source for the configuration-only assessment."
+    reviewed_by: human
+
+  - name: "MAESTRO_RECETAS"
+    suggested_class: tabular_candidate
+    suggested_range: "A1:E3"
+    suggestion_confidence: 0.949
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+    final_decision: include
+    final_range: "A1:E3"
+    final_header_row: 1
+    decision_reason: "Included as the available product/recipe catalog source."
+    reviewed_by: human
+
+  - name: "CONTROL_DESVIOS"
+    suggested_class: unknown
+    suggested_range: "A1:D2"
+    suggestion_confidence: 0.936
+    needs_human_review: false
+    review_reasons: []
+    final_decision: include
+    final_range: "A1:D2"
+    final_header_row: 1
+    decision_reason: "Included as a small deviation register despite low row count."
+    reviewed_by: human
+
+  - name: "DASHBOARD_CALIDAD"
+    suggested_class: tabular_candidate
+    suggested_range: "A2:B4"
+    suggestion_confidence: 0.926
+    needs_human_review: true
+    review_reasons:
+      - multiple_similar_candidate_blocks
+      - mixed_form_report_table_signals
+    final_decision: exclude
+    final_range: null
+    final_header_row: null
+    decision_reason: "Excluded because it is an aggregated dashboard/report output, not an ingestion source."
+    reviewed_by: human
