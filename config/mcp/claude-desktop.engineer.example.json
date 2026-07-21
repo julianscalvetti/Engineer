@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "quality-ai-engineer": {
+      "command": "<NODE_EXECUTABLE>",
+      "args": [
+        "<REPOSITORY_ROOT>\\node_modules\\tsx\\dist\\cli.mjs",
+        "<REPOSITORY_ROOT>\\mcp\\engineer-server.ts"
+      ]
+    }
+  }
+}

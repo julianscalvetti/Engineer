@@ -1,5 +1,8 @@
 node_modules/
 .next/
+*.tsbuildinfo
+mcp/bundle/server/
+dist/
 .env*
 !.env.example
 
