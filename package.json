@@ -8,18 +8,26 @@
     "ingestion:profile": "tsx scripts/profile-xlsx.ts",
     "ingestion:mapping:validate": "tsx scripts/validate-semantic-mapping.ts",
     "ingestion:mapping:preview": "tsx scripts/execute-semantic-mapping.ts",
-    "test": "tsx scripts/test-profiler.ts && tsx scripts/test-semantic-mapping.ts",
+    "mcp:engineer": "tsx mcp/engineer-server.ts",
+    "mcp:engineer:smoke": "tsx scripts/smoke-engineer-mcp-real.ts",
+    "mcp:bundle:build": "node scripts/build-engineer-mcpb.mjs",
+    "mcp:bundle:validate": "node scripts/validate-engineer-mcpb.mjs",
+    "mcp:bundle:pack": "npm.cmd run mcp:bundle:build && npm.cmd exec --package @anthropic-ai/mcpb -- mcpb pack mcp/bundle dist/engineer-quality.mcpb",
+    "test": "tsx scripts/test-profiler.ts && tsx scripts/test-semantic-mapping.ts && tsx scripts/test-engineer-primitives.ts",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "exceljs": "^4.4.0",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

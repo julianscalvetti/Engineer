@@ -40,11 +40,14 @@ type PlantRow = {
 
 const roles = new Set(["owner", "engineer", "operator"]);
 
-export async function getActiveTenantContext(supabase: SupabaseClient): Promise<TenantContext> {
+export async function getActiveTenantContext(
+  supabase: SupabaseClient,
+  options: { accessToken?: string } = {},
+): Promise<TenantContext> {
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser();
+  } = options.accessToken ? await supabase.auth.getUser(options.accessToken) : await supabase.auth.getUser();
 
   if (userError || !user) {
     return {
