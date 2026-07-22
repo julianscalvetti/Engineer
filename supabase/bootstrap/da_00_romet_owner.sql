@@ -4,6 +4,6 @@
 
 select *
 from public.bootstrap_romet_owner(
-  'AUTH_USER_ID'::uuid,
-  'ROMET Owner'
+  '<AUTH_USER_ID>'::uuid,
+  '<ENGINEER_USER_EMAIL>'
 );

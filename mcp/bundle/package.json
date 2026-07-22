@@ -1,0 +1,8 @@
+{
+  "name": "engineer-quality-mcpb",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-contained MCPB bundle for the Quality AI Engineer MCP server.",
+  "main": "server/index.js"
+}

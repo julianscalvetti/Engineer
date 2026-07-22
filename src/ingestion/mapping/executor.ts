@@ -1,8 +1,9 @@
 import ExcelJS from "exceljs";
 import path from "node:path";
 
-import { loadSemanticMapping } from "./loader";
+import { loadSemanticMapping, loadSourceSelection } from "./loader";
 import { validateSemanticMapping } from "./engine";
+import { buildApprovedSourceSelections } from "./approved-source-selection";
 import { executeRowTableSource } from "./row-table-executor";
 import { executeWideColumnsSource } from "./wide-columns-executor";
 import { buildPreviewSummary, writeMappingPreviewArtifacts } from "./execution-diagnostics";
@@ -28,7 +29,17 @@ export async function executeSemanticMappingPreview(input: MappingPreviewInput):
 
   const mappingLoad = await loadSemanticMapping(input.semanticMappingPath);
   if (!mappingLoad.value) throw new Error(`Could not load semantic mapping: ${mappingLoad.errors.join("; ")}`);
+  const selectionLoad = await loadSourceSelection(input.sourceSelectionPath);
+  if (!selectionLoad.value) throw new Error(`Could not load source selection: ${selectionLoad.errors.join("; ")}`);
   const mapping = mappingLoad.value;
+  const approvedSelectionResult = buildApprovedSourceSelections({
+    sourceSelection: selectionLoad.value,
+    semanticMapping: mapping,
+  });
+  if (approvedSelectionResult.errors.length > 0) {
+    throw new Error(`Approved source selection failed with ${approvedSelectionResult.errors.length} error(s).`);
+  }
+  const approvedSourcesById = new Map(approvedSelectionResult.approvedSources.map((source) => [source.sourceId, source]));
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(input.inputFilePath);
 
@@ -41,13 +52,16 @@ export async function executeSemanticMappingPreview(input: MappingPreviewInput):
   const sourceFileSha256 = validation.sourceFile.sha256;
 
   for (const source of orderedSources) {
-    const worksheet = workbook.getWorksheet(source.sheet);
-    if (!worksheet) throw new Error(`Worksheet not found: ${source.sheet}`);
+    const approvedSource = approvedSourcesById.get(source.id);
+    if (!approvedSource) throw new Error(`Approved source selection not found: ${source.id}`);
+    const worksheet = workbook.getWorksheet(approvedSource.physical.sheet);
+    if (!worksheet) throw new Error(`Worksheet not found: ${approvedSource.physical.sheet}`);
     const result =
       source.layout === "row_table"
         ? executeRowTableSource({
             worksheet,
             source,
+            approvedSource,
             mapping,
             sourceFileName,
             sourceFileSha256,
@@ -57,6 +71,7 @@ export async function executeSemanticMappingPreview(input: MappingPreviewInput):
         : executeWideColumnsSource({
             worksheet,
             source,
+            approvedSource,
             mapping,
             sourceFileName,
             sourceFileSha256,

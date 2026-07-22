@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
@@ -13,6 +13,7 @@ import {
   resolveScopedCatalogLookup,
   validateSemanticMapping,
 } from "../src/ingestion";
+import { executeImportDryRun } from "../src/ingestion/persistence/dry-run";
 
 interface FixtureField {
   source_column?: string;
@@ -41,6 +42,7 @@ interface FixtureSource {
     catalog_field: string;
     remainder_field: string;
   } | Record<string, unknown>;
+  semantic_review_values?: string[];
 }
 
 async function main(): Promise<void> {
@@ -76,6 +78,7 @@ async function main(): Promise<void> {
   await testPreviewRowTableAndJsonl();
   await testPreviewWidePipelineAndTraceability();
   await testPreviewSecondCompany();
+  await testLookupValueOverridesForRometIndustrialDecisions();
   await testMeasurementModelWithSyntheticIndustry();
   await testDuplicateHeaderColumnSelectors();
   testLongestCatalogPrefixResolved();
@@ -793,6 +796,275 @@ async function testPreviewSecondCompany(): Promise<void> {
   assert.equal(summary.counts_by_status.valid, 2);
 }
 
+async function testLookupValueOverridesForRometIndustrialDecisions(): Promise<void> {
+  const fixture = await createCustomWorkbook("romet-industrial-overrides", async (workbook) => {
+    const products = workbook.addWorksheet("Products");
+    products.addRow(["Code", "Name"]);
+    products.addRow(["_A9076804902", "Sprinter"]);
+    products.addRow(["_MB3B_2104545_EG", "Ranger"]);
+    products.addRow(["_OTHER_SCOPE", "Other"]);
+
+    const operations = workbook.addWorksheet("Operations");
+    operations.addRow(["Product", "Operation", "OperationCode"]);
+    operations.addRow(["_A9076804902", "OP_40 - CONTROL FINAL", "OP_40"]);
+    operations.addRow(["_A9076804902", "OP_50 - RETRABAJO SOLD MAN.", "OP_50"]);
+    operations.addRow(["_A9076804902", "OP_100 - CONTROL FINAL INSPECTOR", "OP_100"]);
+    operations.addRow(["_MB3B_2104545_EG", "OP_50 - CONTROL SOLDADURA", "OP_50"]);
+    operations.addRow(["_OTHER_SCOPE", "OP_50 - CONTROL SOLDADURA", "OP_50"]);
+
+    const failureModes = workbook.addWorksheet("FailureModes");
+    failureModes.addRow(["Product", "OperationCode", "Failure"]);
+    failureModes.addRow(["_OTHER_SCOPE", "OP_50", "CORDON DESPLAZADO"]);
+    failureModes.addRow(["_OTHER_SCOPE", "OP_50", "SOLDADURA NO OK"]);
+    failureModes.addRow(["_OTHER_SCOPE", "OP_50", "POSICION SOPORTE STEREO"]);
+    failureModes.addRow(["_OTHER_SCOPE", "OP_50", "SPATTER EN ORIFICIOS"]);
+
+    const controls = workbook.addWorksheet("Controls");
+    controls.addRow(["Date", "Product", "Operation", "Failure", "Qty", "Inspected"]);
+    controls.addRow(["2026-07-01", "_A9076804902", "OP_100 - CONTROL FINAL", "", "0", "10"]);
+    controls.addRow(["2026-07-01", "_A9076804902", "OP_50 - RETRABAJO SOLD MAN.", "CORDON DESPLAZADO", "5", "10"]);
+    controls.addRow(["2026-07-01", "_MB3B_2104545_EG", "OP_50 - CONTROL SOLDADURA", "SOLDADURA NO OK", "4", "10"]);
+    controls.addRow(["2026-07-01", "_MB3B_2104545_EG", "OP_50 - CONTROL SOLDADURA", "POSICION SOPORTE STEREO", "3", "10"]);
+    controls.addRow(["2026-07-01", "_MB3B_2104545_EG", "OP_50 - CONTROL SOLDADURA", "SPATTER EN ORIFICIOS", "2", "10"]);
+    controls.addRow(["2026-07-01", "_A9076804902", "OP_40 - CONTROL FINAL", "SIN DEFECTO", "0", "10"]);
+    controls.addRow(["2026-07-01", "_A9076804902", "OP_40 - CONTROL FINAL", "PUNZONADO OK", "1", "10"]);
+    controls.addRow(["2026-07-01", "_A9076804902", "OP_50 - RETRABAJO SOLD MAN.", "OTROS *", "1", "10"]);
+    controls.addRow(["2026-07-01", "_A9076804902", "OP_50 - RETRABAJO SOLD MAN.", "CORDON DESVIADO", "1", "10"]);
+    controls.addRow(["2026-07-01", "_OTHER_SCOPE", "OP_50 - CONTROL SOLDADURA", "SOLDADURA NO OK", "7", "10"]);
+  }, selectionYamlFrom([
+    { name: "Products", range: "A1:B4", headerRow: 1 },
+    { name: "Operations", range: "A1:C6", headerRow: 1 },
+    { name: "FailureModes", range: "A1:C5", headerRow: 1 },
+    { name: "Controls", range: "A1:F11", headerRow: 1 },
+  ]));
+  const mappingPath = await writeMapping(
+    fixture.dir,
+    buildMapping({
+      mappingId: "romet-industrial-overrides-v1",
+      companyContext: "ROMET",
+      sources: [
+        {
+          id: "products",
+          layout: "row_table",
+          sheet: "Products",
+          header_row: 1,
+          data_range: "A1:B4",
+          fields: [
+            field("Code", "product.external_code", ["trim", "preserve_string"]),
+            field("Name", "product.name", ["trim", "preserve_string"]),
+          ],
+        },
+        {
+          id: "operations",
+          layout: "row_table",
+          sheet: "Operations",
+          header_row: 1,
+          data_range: "A1:C6",
+          depends_on: ["products"],
+          fields: [
+            field("Product", "product.external_code", ["trim", "preserve_string"]),
+            field("Operation", "operation.raw_name", ["trim", "normalize_whitespace"]),
+            field("OperationCode", "operation.external_code", ["trim", "preserve_string"]),
+          ],
+        },
+        {
+          id: "failure_modes",
+          layout: "row_table",
+          sheet: "FailureModes",
+          header_row: 1,
+          data_range: "A1:C5",
+          depends_on: ["products", "operations"],
+          fields: [
+            field("Product", "product.external_code", ["trim", "preserve_string"]),
+            field("OperationCode", "operation.external_code", ["trim", "preserve_string"]),
+            field("Failure", "failure_mode.name", ["trim", "normalize_whitespace"]),
+          ],
+        },
+        {
+          id: "controls",
+          layout: "row_table",
+          sheet: "Controls",
+          header_row: 1,
+          data_range: "A1:F11",
+          depends_on: ["products", "operations", "failure_modes"],
+          fields: [
+            { ...field("Date", "control.occurred_at", ["trim", "parse_date"]), data_type: "date" },
+            {
+              ...field("Product", "product.external_code", ["trim", "preserve_string"]),
+              treatment: "lookup",
+              lookup: {
+                catalog_source: "products",
+                catalog_match_field: "product.external_code",
+                input_field: "product.external_code",
+                on_unresolved: "pending_review",
+                on_ambiguous: "rejected",
+              },
+            },
+            {
+              ...field("Operation", "operation.raw_name", ["trim", "normalize_whitespace"]),
+              treatment: "lookup",
+              lookup: {
+                catalog_source: "operations",
+                catalog_match_field: "operation.raw_name",
+                input_field: "operation.raw_name",
+                scope: [{ catalog_field: "product.external_code", value_field: "product.external_code" }],
+                value_overrides: [
+                  {
+                    input: "OP_100 - CONTROL FINAL",
+                    action: "resolve",
+                    output: "OP_100 - CONTROL FINAL INSPECTOR",
+                    scope: { "product.external_code": "_A9076804902" },
+                  },
+                ],
+                on_unresolved: "pending_review",
+                on_ambiguous: "rejected",
+              },
+            },
+            {
+              ...field("Operation", "operation.external_code", ["extract_regex"]),
+              required: false,
+              treatment: "pending",
+              regex: "^(OP_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)",
+              fallback_value: null,
+              on_no_match: "pending_review",
+            },
+            {
+              ...field("Failure", "failure_mode.name", ["trim", "normalize_whitespace"]),
+              required: false,
+              treatment: "lookup",
+              lookup: {
+                catalog_source: "failure_modes",
+                catalog_match_field: "failure_mode.name",
+                input_field: "failure_mode.name",
+                scope: [
+                  { catalog_field: "product.external_code", value_field: "product.external_code" },
+                  { catalog_field: "operation.external_code", value_field: "operation.external_code" },
+                ],
+                value_overrides: [
+                  {
+                    input: "CORDON DESPLAZADO",
+                    action: "exclude",
+                    scope: { "product.external_code": "_A9076804902", "operation.external_code": "OP_50" },
+                    issue_code: "LOOKUP_VALUE_EXCLUDED",
+                  },
+                  {
+                    input: "SOLDADURA NO OK",
+                    action: "exclude",
+                    scope: { "product.external_code": "_MB3B_2104545_EG", "operation.external_code": "OP_50" },
+                    issue_code: "LOOKUP_VALUE_EXCLUDED",
+                  },
+                  {
+                    input: "POSICION SOPORTE STEREO",
+                    action: "exclude",
+                    scope: { "product.external_code": "_MB3B_2104545_EG", "operation.external_code": "OP_50" },
+                    issue_code: "LOOKUP_VALUE_EXCLUDED",
+                  },
+                  {
+                    input: "SPATTER EN ORIFICIOS",
+                    action: "exclude",
+                    scope: { "product.external_code": "_MB3B_2104545_EG", "operation.external_code": "OP_50" },
+                    issue_code: "LOOKUP_VALUE_EXCLUDED",
+                  },
+                  { input: "SIN DEFECTO", action: "conforming" },
+                  { input: "PUNZONADO OK", action: "conforming" },
+                ],
+                required: false,
+                on_unresolved: "pending_review",
+                on_ambiguous: "rejected",
+              },
+            },
+            { ...field("Qty", "control_failure.quantity", ["trim", "parse_integer"]), data_type: "integer", required: false },
+            { ...field("Inspected", "control.inspected_quantity", ["trim", "parse_integer"]), data_type: "integer" },
+          ],
+        },
+      ],
+    }),
+  );
+
+  const preview = await executeSemanticMappingPreview({
+    inputFilePath: fixture.workbookPath,
+    sourceSelectionPath: fixture.selectionPath,
+    semanticMappingPath: mappingPath,
+    outputDirectory: path.join(fixture.dir, "preview"),
+  });
+  type PreviewRecordForTest = {
+    record_id: string;
+    source_id: string;
+    status: string;
+    raw_values: Record<string, string>;
+    semantic_values: Record<string, unknown>;
+    preserved_values: Record<string, unknown>;
+    issues: Array<{ code: string }>;
+  };
+  type PlanItemForTest = {
+    key: string;
+    source_record_id: string;
+    values: Record<string, unknown>;
+  };
+  const records = (await readFile(preview.output_files.jsonl, "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line) as PreviewRecordForTest);
+  const controlRecords = records.filter((record) => record.source_id === "controls");
+  const dryRun = await executeImportDryRun({
+    previewJsonlPath: preview.output_files.jsonl,
+    previewSummaryPath: preview.output_files.summary_json,
+    outputDirectory: path.join(fixture.dir, "dry-run"),
+  });
+  const plan = JSON.parse(await readFile(dryRun.output_files.plan_json, "utf8")) as {
+    entities: {
+      operations: PlanItemForTest[];
+      controls: PlanItemForTest[];
+      control_failures: PlanItemForTest[];
+    };
+  };
+
+  const aliasRecord = controlRecords.find((record) => record.raw_values.Operation === "OP_100 - CONTROL FINAL");
+  assert.ok(aliasRecord);
+  assert.equal(aliasRecord.semantic_values["operation.raw_name"], "OP_100 - CONTROL FINAL INSPECTOR");
+  assert.equal(aliasRecord.preserved_values["operation.raw_name"], "OP_100 - CONTROL FINAL");
+  assert.equal(aliasRecord.semantic_values["operation.external_code"], "OP_100");
+  assert.equal(plan.entities.operations.filter((item) => item.key === "_A9076804902::OP_100").length, 1);
+  assert.equal(
+    plan.entities.operations.some((item) => item.values.name === "OP_100 - CONTROL FINAL"),
+    false,
+  );
+
+  const excludedValues = new Set(["CORDON DESPLAZADO", "SOLDADURA NO OK", "POSICION SOPORTE STEREO", "SPATTER EN ORIFICIOS"]);
+  const excludedRecords = controlRecords.filter(
+    (record) =>
+      excludedValues.has(record.raw_values.Failure) &&
+      (record.semantic_values["product.external_code"] === "_A9076804902" ||
+        record.semantic_values["product.external_code"] === "_MB3B_2104545_EG"),
+  );
+  assert.equal(excludedRecords.length, 4);
+  assert.ok(excludedRecords.every((record) => record.status === "warning"));
+  assert.ok(excludedRecords.every((record) => record.semantic_values["failure_mode.name"] === null));
+  assert.ok(excludedRecords.every((record) => record.issues.some((item) => item.code === "LOOKUP_VALUE_EXCLUDED")));
+  assert.ok(excludedRecords.every((record) => plan.entities.controls.some((item) => item.source_record_id === record.record_id)));
+  assert.ok(excludedRecords.every((record) => !plan.entities.control_failures.some((item) => item.source_record_id === record.record_id)));
+
+  const conformingRecords = controlRecords.filter((record) => ["SIN DEFECTO", "PUNZONADO OK"].includes(record.raw_values.Failure));
+  assert.equal(conformingRecords.length, 2);
+  assert.ok(conformingRecords.every((record) => record.status === "valid"));
+  assert.ok(conformingRecords.every((record) => record.semantic_values["failure_mode.name"] === null));
+  assert.ok(conformingRecords.every((record) => plan.entities.controls.some((item) => item.source_record_id === record.record_id)));
+  assert.ok(conformingRecords.every((record) => !plan.entities.control_failures.some((item) => item.source_record_id === record.record_id)));
+
+  const otros = controlRecords.find((record) => record.raw_values.Failure === "OTROS *");
+  assert.ok(otros);
+  assert.equal(otros.status, "pending_review");
+  const notApproved = controlRecords.find((record) => record.raw_values.Failure === "CORDON DESVIADO");
+  assert.ok(notApproved);
+  assert.equal(notApproved.status, "pending_review");
+
+  const validOtherScope = controlRecords.find((record) => record.semantic_values["product.external_code"] === "_OTHER_SCOPE");
+  assert.ok(validOtherScope);
+  assert.equal(validOtherScope.status, "valid");
+  assert.equal(validOtherScope.semantic_values["failure_mode.name"], "SOLDADURA NO OK");
+  assert.ok(plan.entities.control_failures.some((item) => item.source_record_id === validOtherScope.record_id));
+}
+
 async function testMeasurementModelWithSyntheticIndustry(): Promise<void> {
   const fixture = await createCustomWorkbook("measurement-foundry", async (workbook) => {
     const sheet = workbook.addWorksheet("FoundryChecks");
@@ -1207,12 +1479,13 @@ async function createCustomWorkbook(
 
 function selectionYaml(sheetNames: string[]): string {
   const sheets = sheetNames
-    .map(
-      (sheet) => `  - name: "${sheet}"
+    .map((sheet) => {
+      const range = sheet === "Operations" || sheet === "FailureModes" ? "A1:B10" : "A1:C10";
+      return `  - name: "${sheet}"
     final_decision: include
-    final_range: "A1:C10"
-    final_header_row: 1`,
-    )
+    final_range: "${range}"
+    final_header_row: 1`;
+    })
     .join("\n");
   return `file_name: "source.xlsx"
 file_sha256: "test"

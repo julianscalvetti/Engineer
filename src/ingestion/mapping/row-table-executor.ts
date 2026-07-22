@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 
-import type { MappingSourceConfig, SemanticMappingConfig } from "./types";
+import type { ApprovedSourceSelection, MappingSourceConfig, SemanticMappingConfig } from "./types";
 import type { CatalogRecord, MappedSourceRecord } from "./execution-types";
 import { buildHeaderIndex, columnSelectorKey, resolveConfiguredColumn } from "./column-selector";
 import { runFieldLookup } from "./lookup-runner";
@@ -11,6 +11,7 @@ import { buildRecord, parseRange, stringifyCell } from "./executor-utils";
 export function executeRowTableSource(input: {
   worksheet: ExcelJS.Worksheet;
   source: MappingSourceConfig;
+  approvedSource: ApprovedSourceSelection;
   mapping: SemanticMappingConfig;
   sourceFileName: string;
   sourceFileSha256: string;
@@ -18,13 +19,14 @@ export function executeRowTableSource(input: {
   maxRecords?: number;
 }): { records: MappedSourceRecord[]; availableRecords: number; truncated: boolean } {
   const source = input.source;
-  const range = parseRange(source.data_range ?? `A1:${input.worksheet.columnCount}${input.worksheet.rowCount}`);
-  const headerRow = input.worksheet.getRow(source.header_row);
+  const physical = input.approvedSource.physical;
+  const range = parseRange(physical.finalRange);
+  const headerRow = input.worksheet.getRow(physical.headerRow);
   const headerIndex = buildHeaderIndex(headerRow, range.startColumn, range.endColumn);
 
   const records: MappedSourceRecord[] = [];
   let availableRecords = 0;
-  for (let rowNumber = Math.max(range.startRow, source.header_row + 1); rowNumber <= range.endRow; rowNumber += 1) {
+  for (let rowNumber = Math.max(range.startRow, physical.headerRow + 1); rowNumber <= range.endRow; rowNumber += 1) {
     const row = input.worksheet.getRow(rowNumber);
     const rowValues: string[] = [];
     for (let column = range.startColumn; column <= range.endColumn; column += 1) {
@@ -85,8 +87,8 @@ export function executeRowTableSource(input: {
         locator: {
           sheet_name: input.worksheet.name,
           row_number: rowNumber,
-          selected_range: source.data_range,
-          header_row: source.header_row,
+          selected_range: physical.finalRange,
+          header_row: physical.headerRow,
         },
         transformations,
         resolutions,

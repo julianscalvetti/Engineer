@@ -1,4 +1,5 @@
 export type {
+  ApprovedSourceSelection,
   FieldTransformation,
   FieldTreatment,
   MappingFieldConfig,
@@ -27,6 +28,7 @@ export type {
   SampleMode,
 } from "./execution-types";
 
+export { buildApprovedSourceSelections } from "./approved-source-selection";
 export {
   applyRegexReplace,
   evaluateResolverPipeline,

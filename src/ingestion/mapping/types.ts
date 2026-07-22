@@ -51,10 +51,24 @@ export interface FieldLookupConfig {
   catalog_match_field: string;
   input_field: string;
   scope?: ResolverScopeConfig[];
+  value_overrides?: LookupValueOverrideConfig[];
   required?: boolean;
   on_unresolved?: LookupUnresolvedPolicy;
   on_ambiguous?: LookupAmbiguousPolicy;
   preserve_input_value?: boolean;
+}
+
+export type LookupValueOverrideAction = "resolve" | "exclude" | "conforming";
+
+export interface LookupValueOverrideConfig {
+  input: string;
+  action: LookupValueOverrideAction;
+  output?: unknown;
+  scope?: Record<string, string>;
+  issue_code?: string;
+  message?: string;
+  severity?: "warning" | "pending_review" | "rejected";
+  reference?: string;
 }
 
 export interface MappingFieldConfig {
@@ -149,6 +163,7 @@ export interface ScopedCatalogLookupResolverConfig {
   catalog_match_field: string;
   output_field: string;
   scope?: ResolverScopeConfig[];
+  value_overrides?: LookupValueOverrideConfig[];
   required?: boolean;
 }
 
@@ -197,6 +212,8 @@ export interface SemanticMappingConfig {
 
 export interface SourceSelectionSheet {
   name: string;
+  source_id?: string;
+  sourceId?: string;
   final_decision?: string;
   final_range?: string | null;
   final_header_row?: number | null;
@@ -209,6 +226,20 @@ export interface SourceSelectionConfig {
   file_sha256?: string;
   profile_version?: string;
   sheets: SourceSelectionSheet[];
+}
+
+export interface ApprovedSourceSelection {
+  sourceId: string;
+  physical: {
+    sheet: string;
+    headerRow: number;
+    finalRange: string;
+  };
+  semantic: {
+    layout: SourceLayout;
+    mappingId: string;
+    mappingVersion: SemanticMappingVersion;
+  };
 }
 
 export interface MappingValidationOptions {
@@ -377,6 +408,7 @@ export interface MappingValidationReport {
     mappingVersion?: string;
     status?: string;
   };
+  approvedSources: ApprovedSourceSelection[];
   sources: Array<{
     id: string;
     sheet: string;

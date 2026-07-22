@@ -322,13 +322,13 @@ begin
 
   insert into public.plants (company_id, name, active)
   values (boot_company_id, 'Planta Principal', true)
-  on conflict (company_id, name) do update
+  on conflict on constraint plants_company_id_name_key do update
     set active = true
   returning id into boot_plant_id;
 
   insert into public.company_members (company_id, user_id, role, active)
   values (boot_company_id, target_user_id, 'owner', true)
-  on conflict (company_id, user_id) do update
+  on conflict on constraint company_members_company_id_user_id_key do update
     set role = 'owner',
         active = true;
 

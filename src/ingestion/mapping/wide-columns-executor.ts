@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 
-import type { MappingSourceConfig, SemanticMappingConfig } from "./types";
+import type { ApprovedSourceSelection, MappingSourceConfig, SemanticMappingConfig } from "./types";
 import type { CatalogRecord, MappedSourceRecord } from "./execution-types";
 import { runFieldLookup } from "./lookup-runner";
 import { runResolverPipeline } from "./resolver-runner";
@@ -10,6 +10,7 @@ import { buildRecord, columnNumberToName, parseRange, stringifyCell } from "./ex
 export function executeWideColumnsSource(input: {
   worksheet: ExcelJS.Worksheet;
   source: MappingSourceConfig;
+  approvedSource: ApprovedSourceSelection;
   mapping: SemanticMappingConfig;
   sourceFileName: string;
   sourceFileSha256: string;
@@ -17,16 +18,17 @@ export function executeWideColumnsSource(input: {
   maxRecords?: number;
 }): { records: MappedSourceRecord[]; availableRecords: number; truncated: boolean } {
   const source = input.source;
-  const range = parseRange(source.data_range ?? `A1:${input.worksheet.columnCount}${input.worksheet.rowCount}`);
+  const physical = input.approvedSource.physical;
+  const range = parseRange(physical.finalRange);
   const records: MappedSourceRecord[] = [];
   let availableRecords = 0;
 
   for (let column = range.startColumn; column <= range.endColumn; column += 1) {
-    const header = stringifyCell(input.worksheet.getRow(source.header_row).getCell(column).value).trim();
+    const header = stringifyCell(input.worksheet.getRow(physical.headerRow).getCell(column).value).trim();
     if (!header) continue;
     const headerEvaluation = evaluateColumnHeader({ source, header, catalogs: input.catalogs });
 
-    for (let rowNumber = Math.max(range.startRow, source.header_row + 1); rowNumber <= range.endRow; rowNumber += 1) {
+    for (let rowNumber = Math.max(range.startRow, physical.headerRow + 1); rowNumber <= range.endRow; rowNumber += 1) {
       const rawCellValue = stringifyCell(input.worksheet.getRow(rowNumber).getCell(column).value).trim();
       if (!rawCellValue) continue;
       availableRecords += 1;
@@ -88,8 +90,8 @@ export function executeWideColumnsSource(input: {
             column_letter: columnNumberToName(column),
             column_header: header,
             cell_address: `${columnNumberToName(column)}${rowNumber}`,
-            selected_range: source.data_range,
-            header_row: source.header_row,
+            selected_range: physical.finalRange,
+            header_row: physical.headerRow,
           },
           transformations,
           resolutions,

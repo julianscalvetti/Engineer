@@ -1,17 +1,32 @@
 mapping_version: semantic-mapping-v1
-mapping_id: romet-semantic-mapping-v1-draft
+mapping_id: romet-semantic-mapping-v2-industrial-decisions
 source_file_name: "Registro Control Final ROMET - Profiling .xlsx"
 source_file_sha256: "51623594ea17a2ee02c92730d0dfd0716f88d5e6f6153138c79138e1c87370ab"
 source_selection_path: source-selection.yaml
 status: draft
 company_context: ROMET
+configuration_revision:
+  previous_mapping_id: romet-semantic-mapping-v1-draft
+  current_mapping_id: romet-semantic-mapping-v2-industrial-decisions
+  date: "2026-07-22"
+  reference: "src/ingestion/README.md#romet-vigente"
+  industrial_validation_package: "Generated local artifact; not versioned. Regenerate under data/reports/romet/ when audit evidence is needed."
+  decisions:
+    - "Alias scoped: _A9076804902 / OP_100 - CONTROL FINAL -> OP_100 - CONTROL FINAL INSPECTOR."
+    - "Excluded scoped failure value: _A9076804902 / OP_50 / CORDON DESPLAZADO."
+    - "Excluded scoped failure value: _MB3B_2104545_EG / OP_50 / SOLDADURA NO OK."
+    - "Excluded scoped failure value: _MB3B_2104545_EG / OP_50 / POSICION SOPORTE STEREO."
+    - "Excluded scoped failure value: _MB3B_2104545_EG / OP_50 / SPATTER EN ORIFICIOS."
+    - "Conforming control values: SIN DEFECTO and PUNZONADO OK."
+    - "OTROS * remains pending_review."
 assumptions:
   - "ROMET se usa solo como primera configuración de prueba del motor genérico."
   - "Los nombres de hojas, columnas y valores especiales pertenecen a esta configuración, no al motor."
   - "Las fuentes aprobadas son las marcadas como include en source-selection.yaml."
+  - "Las decisiones industriales aprobadas se aplican como overrides exactos y acotados por scope cuando corresponde."
 unresolved_decisions:
   - "Confirmar si operation.external_code debe persistirse cuando el regex no detecta un código."
-  - "Confirmar tratamiento semántico definitivo para SIN DEFECTO y OTROS *."
+  - "Confirmar tratamiento semántico definitivo para OTROS *."
 
 sources:
   - id: products
@@ -199,6 +214,13 @@ sources:
           scope:
             - catalog_field: product.external_code
               value_field: product.external_code
+          value_overrides:
+            - input: "OP_100 - CONTROL FINAL"
+              action: resolve
+              output: "OP_100 - CONTROL FINAL INSPECTOR"
+              scope:
+                product.external_code: "_A9076804902"
+              reference: "romet-industrial-validation-2026-07-22"
           required: true
           on_unresolved: pending_review
           on_ambiguous: rejected
@@ -250,6 +272,49 @@ sources:
               value_field: product.external_code
             - catalog_field: operation.external_code
               value_field: operation.external_code
+          value_overrides:
+            - input: "CORDON DESPLAZADO"
+              action: exclude
+              scope:
+                product.external_code: "_A9076804902"
+                operation.external_code: "OP_50"
+              issue_code: LOOKUP_VALUE_EXCLUDED
+              message: "Failure value excluded by approved ROMET industrial decision."
+              severity: warning
+              reference: "romet-industrial-validation-2026-07-22"
+            - input: "SOLDADURA NO OK"
+              action: exclude
+              scope:
+                product.external_code: "_MB3B_2104545_EG"
+                operation.external_code: "OP_50"
+              issue_code: LOOKUP_VALUE_EXCLUDED
+              message: "Failure value excluded by approved ROMET industrial decision."
+              severity: warning
+              reference: "romet-industrial-validation-2026-07-22"
+            - input: "POSICION SOPORTE STEREO"
+              action: exclude
+              scope:
+                product.external_code: "_MB3B_2104545_EG"
+                operation.external_code: "OP_50"
+              issue_code: LOOKUP_VALUE_EXCLUDED
+              message: "Failure value excluded by approved ROMET industrial decision."
+              severity: warning
+              reference: "romet-industrial-validation-2026-07-22"
+            - input: "SPATTER EN ORIFICIOS"
+              action: exclude
+              scope:
+                product.external_code: "_MB3B_2104545_EG"
+                operation.external_code: "OP_50"
+              issue_code: LOOKUP_VALUE_EXCLUDED
+              message: "Failure value excluded by approved ROMET industrial decision."
+              severity: warning
+              reference: "romet-industrial-validation-2026-07-22"
+            - input: "SIN DEFECTO"
+              action: conforming
+              reference: "romet-industrial-validation-2026-07-22"
+            - input: "PUNZONADO OK"
+              action: conforming
+              reference: "romet-industrial-validation-2026-07-22"
           required: false
           on_unresolved: pending_review
           on_ambiguous: rejected

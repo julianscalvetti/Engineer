@@ -1,0 +1,109 @@
+{
+  "manifest_version": "0.3",
+  "name": "engineer-quality",
+  "display_name": "Engineer Quality",
+  "version": "0.1.0",
+  "description": "Read-only full-history Engineer analytics for ROMET quality data through Supabase RLS.",
+  "author": {
+    "name": "Quality AI"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/server/index.js"
+      ],
+      "env": {
+        "SUPABASE_URL": "${user_config.SUPABASE_URL}",
+        "SUPABASE_PUBLISHABLE_KEY": "${user_config.SUPABASE_PUBLISHABLE_KEY}",
+        "ENGINEER_SUPABASE_EMAIL": "${user_config.ENGINEER_SUPABASE_EMAIL}",
+        "ENGINEER_SUPABASE_PASSWORD": "${user_config.ENGINEER_SUPABASE_PASSWORD}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "get_quality_summary",
+      "description": "Read KPI summary for ROMET / Planta Principal. With no dates, returns full historical KPIs."
+    },
+    {
+      "name": "get_quality_ranking",
+      "description": "Read bounded quality rankings for ROMET / Planta Principal."
+    },
+    {
+      "name": "get_quality_trend",
+      "description": "Read quality trends for ROMET / Planta Principal, using full history by default and reporting aggregation/truncation."
+    },
+    {
+      "name": "search_quality_catalog",
+      "description": "Search scoped customers, products, operations and failure modes. ROMET is the tenant, not a catalog value."
+    },
+    {
+      "name": "search_controls",
+      "description": "Search paginated control history. Defaults to the last 14 days and is not a full historical summary."
+    },
+    {
+      "name": "get_control_detail",
+      "description": "Read one scoped control detail."
+    },
+    {
+      "name": "analyze_quality",
+      "description": "Run controlled multidimensional analytics for ROMET without SQL, with up to two groupBy dimensions and 100 rows."
+    },
+    {
+      "name": "compare_quality_periods",
+      "description": "Compare two explicit periods for ROMET using controlled measures and optional one-dimensional grouping."
+    },
+    {
+      "name": "get_quality_pareto",
+      "description": "Compute server-side defects Pareto with share, cumulativeShare and threshold cutoff."
+    }
+  ],
+  "tools_generated": false,
+  "keywords": [
+    "quality",
+    "manufacturing",
+    "industrial",
+    "romet"
+  ],
+  "privacy_policies": [
+    "https://supabase.com/privacy"
+  ],
+  "compatibility": {
+    "platforms": [
+      "win32"
+    ],
+    "runtimes": {
+      "node": ">=20.6.0"
+    }
+  },
+  "user_config": {
+    "SUPABASE_URL": {
+      "type": "string",
+      "title": "Supabase URL",
+      "description": "Project URL for the Supabase instance.",
+      "required": true
+    },
+    "SUPABASE_PUBLISHABLE_KEY": {
+      "type": "string",
+      "title": "Supabase publishable key",
+      "description": "Publishable or anon Supabase key. Service role and secret keys are rejected.",
+      "required": true
+    },
+    "ENGINEER_SUPABASE_EMAIL": {
+      "type": "string",
+      "title": "Engineer email",
+      "description": "Supabase Auth email for the Engineer user.",
+      "required": true
+    },
+    "ENGINEER_SUPABASE_PASSWORD": {
+      "type": "string",
+      "title": "Engineer password",
+      "description": "Supabase Auth password for the Engineer user.",
+      "required": true,
+      "sensitive": true
+    }
+  }
+}
