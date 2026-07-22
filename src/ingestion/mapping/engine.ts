@@ -8,6 +8,7 @@ import {
   loadSourceSelection,
 } from "./loader";
 import { validateMappingContext } from "./validator";
+import { buildApprovedSourceSelections } from "./approved-source-selection";
 import type {
   MappingIssue,
   MappingValidationInput,
@@ -77,12 +78,24 @@ export async function validateSemanticMapping(input: MappingValidationInput): Pr
     loadErrors.push({ code: "INVALID_SOURCE_PROFILE_JSON", severity: "error", message }),
   );
 
+  const approvedSelectionResult = buildApprovedSourceSelections({
+    sourceSelection: selectionLoad.value,
+    semanticMapping: mappingLoad.value,
+    sourceProfile: profileLoad.value,
+  });
+  loadErrors.push(...approvedSelectionResult.errors);
   const inspectionRequests =
-    mappingLoad.value?.sources?.map((source) => ({
-      sheet: source.sheet,
-      headerRow: source.header_row,
-      dataRange: source.data_range,
-    })) ?? [];
+    approvedSelectionResult.errors.length === 0 && approvedSelectionResult.approvedSources.length > 0
+      ? approvedSelectionResult.approvedSources.map((source) => ({
+          sheet: source.physical.sheet,
+          headerRow: source.physical.headerRow,
+          dataRange: source.physical.finalRange,
+        }))
+      : mappingLoad.value?.sources?.map((source) => ({
+          sheet: source.sheet,
+          headerRow: source.header_row,
+          dataRange: source.data_range,
+        })) ?? [];
   const workbook =
     inputReadError || inspectionRequests.length === 0
       ? { sha256: "", inspections: [], sheetNames: [] }
@@ -111,6 +124,7 @@ export async function validateSemanticMapping(input: MappingValidationInput): Pr
       mappingVersion: mappingLoad.value?.mapping_version,
       status: mappingLoad.value?.status,
     },
+    approvedSources: approvedSelectionResult.approvedSources,
     sources: result.sourceSummaries,
     layoutsUsed: result.layoutsUsed,
     semanticFields: result.semanticFields,

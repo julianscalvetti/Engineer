@@ -29,6 +29,7 @@ export type {
 export { profileXlsxFile } from "./profiling";
 
 export type {
+  ApprovedSourceSelection,
   FieldTransformation,
   FieldTreatment,
   MappingFieldConfig,
@@ -59,6 +60,7 @@ export type {
 
 export {
   applyRegexReplace,
+  buildApprovedSourceSelections,
   evaluateResolverPipeline,
   renderMappingValidationMarkdown,
   resolveLongestCatalogPrefix,

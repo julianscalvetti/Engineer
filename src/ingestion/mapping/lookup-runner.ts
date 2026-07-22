@@ -1,4 +1,9 @@
-import type { FieldLookupConfig, ResolutionStatus, ScopedCatalogLookupResolverConfig } from "./types";
+import type {
+  FieldLookupConfig,
+  LookupValueOverrideConfig,
+  ResolutionStatus,
+  ScopedCatalogLookupResolverConfig,
+} from "./types";
 import type { CatalogRecord, ExecutionIssue, ResolutionTrace } from "./execution-types";
 import { issue } from "./transformation-runner";
 
@@ -47,13 +52,60 @@ export function runScopedLookup(input: {
     };
   }
 
-  const candidates = (input.catalogs.get(input.config.catalog_source) ?? []).filter((record) => {
-    if (!record.usable) return false;
-    const scopeOk = (input.config.scope ?? []).every(
-      (scope) => stringify(record.values[scope.catalog_field]) === stringify(input.values[scope.value_field]),
-    );
-    return scopeOk && stringify(record.values[input.config.catalog_match_field]) === inputValue;
-  });
+  const override = findValueOverride(input.config.value_overrides ?? [], inputValue, input.values);
+  if (override) {
+    if (override.action === "resolve") {
+      const overrideCandidates = findCatalogCandidates(input.config, input.values, stringify(override.output), input.catalogs);
+      const status: ResolutionStatus =
+        overrideCandidates.length === 0 ? "unresolved" : overrideCandidates.length > 1 ? "ambiguous" : "resolved";
+      const output =
+        status === "resolved"
+          ? overrideCandidates[0].values[input.config.output_field] ?? overrideCandidates[0].values[input.config.catalog_match_field]
+          : undefined;
+      const trace = buildTrace(
+        input.config,
+        status,
+        inputValue,
+        scopeValues,
+        overrideCandidates,
+        output === undefined ? {} : { [input.config.output_field]: stringify(output) },
+      );
+      if (status === "resolved") return { trace, output };
+      if (status === "ambiguous") {
+        return {
+          trace,
+          issue: issue("LOOKUP_OVERRIDE_AMBIGUOUS", input.onAmbiguous ?? "pending_review", "Lookup override matched multiple catalog records.", input.config.output_field),
+        };
+      }
+      return {
+        trace,
+        issue: issue("LOOKUP_OVERRIDE_UNRESOLVED", input.onUnresolved ?? "pending_review", "Lookup override target did not match any catalog record.", input.config.output_field),
+      };
+    }
+
+    const output = override.action === "exclude" || override.action === "conforming" ? null : undefined;
+    const outputFields = output === undefined ? {} : { [input.config.output_field]: stringify(output) };
+    const trace = buildTrace(input.config, "skipped", inputValue, scopeValues, [], outputFields);
+    const overrideIssue =
+      override.action === "exclude" || override.issue_code
+        ? issue(
+            override.issue_code ?? "LOOKUP_VALUE_EXCLUDED",
+            override.severity ?? "warning",
+            override.message ?? "Lookup value was handled by a configured override.",
+            input.config.output_field,
+            {
+              action: override.action,
+              input: inputValue,
+              output,
+              scope: override.scope,
+              reference: override.reference,
+            },
+          )
+        : undefined;
+    return { trace, issue: overrideIssue, output };
+  }
+
+  const candidates = findCatalogCandidates(input.config, input.values, inputValue, input.catalogs);
 
   const status: ResolutionStatus =
     candidates.length === 0 ? "unresolved" : candidates.length > 1 ? "ambiguous" : "resolved";
@@ -83,6 +135,21 @@ export function runScopedLookup(input: {
   };
 }
 
+function findCatalogCandidates(
+  config: ScopedCatalogLookupResolverConfig,
+  values: Record<string, unknown>,
+  inputValue: string,
+  catalogs: Map<string, CatalogRecord[]>,
+): CatalogRecord[] {
+  return (catalogs.get(config.catalog_source) ?? []).filter((record) => {
+    if (!record.usable) return false;
+    const scopeOk = (config.scope ?? []).every(
+      (scope) => stringify(record.values[scope.catalog_field]) === stringify(values[scope.value_field]),
+    );
+    return scopeOk && stringify(record.values[config.catalog_match_field]) === inputValue;
+  });
+}
+
 function toScopedConfig(lookup: FieldLookupConfig, outputField: string): ScopedCatalogLookupResolverConfig {
   return {
     type: "scoped_catalog_lookup",
@@ -91,8 +158,20 @@ function toScopedConfig(lookup: FieldLookupConfig, outputField: string): ScopedC
     catalog_match_field: lookup.catalog_match_field,
     output_field: outputField,
     scope: lookup.scope,
+    value_overrides: lookup.value_overrides,
     required: lookup.required,
   };
+}
+
+function findValueOverride(
+  overrides: LookupValueOverrideConfig[],
+  inputValue: string,
+  values: Record<string, unknown>,
+): LookupValueOverrideConfig | undefined {
+  return overrides.find((override) => {
+    if (stringify(override.input) !== inputValue) return false;
+    return Object.entries(override.scope ?? {}).every(([field, expected]) => stringify(values[field]) === stringify(expected));
+  });
 }
 
 function buildTrace(

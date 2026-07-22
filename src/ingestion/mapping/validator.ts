@@ -87,7 +87,6 @@ export function validateMappingContext(context: ValidationContext): ValidationRe
   const warnings: MappingIssue[] = context.loadErrors.filter((issue) => issue.severity === "warning");
   const informational: MappingIssue[] = context.loadErrors.filter((issue) => issue.severity === "informational");
   const mapping = context.mapping;
-  const sourceSelection = context.sourceSelection;
   const sourceSummaries: ValidationResult["sourceSummaries"] = [];
   const dependencies: Record<string, string[]> = {};
   const resolvers: ResolverSummary[] = [];
@@ -132,7 +131,6 @@ export function validateMappingContext(context: ValidationContext): ValidationRe
   });
   duplicateSourceIds.forEach((id) => errors.push(issue("DUPLICATE_SOURCE", `Duplicate source id: ${id}.`, id)));
 
-  const selectedSheets = new Map((sourceSelection?.sheets ?? []).map((sheet) => [sheet.name, sheet]));
   const inspectionBySheet = new Map(context.inspections.map((inspection) => [inspection.sheet, inspection]));
   const profileBySheet = new Map((context.sourceProfile?.sheets ?? []).map((sheet) => [sheet.sheet_name, sheet]));
   const catalogRowsBySource = buildCatalogRowsBySource(mapping.sources, inspectionBySheet);
@@ -141,7 +139,6 @@ export function validateMappingContext(context: ValidationContext): ValidationRe
   for (const source of mapping.sources) {
     dependencies[source.id] = unique([...asStringArray(source.depends_on), ...getLookupDependencies(source)]);
     validateSourceShape(source, errors);
-    validateSourceSelection(source, selectedSheets, errors, warnings);
     validateWorkbookPresence(source, context.sheetNames, inspectionBySheet, errors, warnings);
     validateFields(source, errors);
     validateMeasurements(source, errors);
@@ -196,31 +193,6 @@ function validateSourceShape(source: MappingSourceConfig, errors: MappingIssue[]
     } catch {
       errors.push(issue("INVALID_RANGE", `Invalid data_range: ${source.data_range}.`, source.id));
     }
-  }
-}
-
-function validateSourceSelection(
-  source: MappingSourceConfig,
-  selectedSheets: Map<string, { final_decision?: string; final_range?: string | null; final_header_row?: number | null }>,
-  errors: MappingIssue[],
-  warnings: MappingIssue[],
-): void {
-  const selected = selectedSheets.get(source.sheet);
-  if (!selected) {
-    errors.push(issue("SOURCE_NOT_IN_SELECTION", "Source sheet is not present in source-selection.yaml.", source.id));
-    return;
-  }
-
-  if (selected.final_decision && selected.final_decision !== "include") {
-    errors.push(issue("SOURCE_NOT_APPROVED", "Source sheet is not approved as include in source-selection.yaml.", source.id));
-  }
-
-  if (selected.final_header_row && selected.final_header_row !== source.header_row) {
-    warnings.push(warning("HEADER_ROW_SELECTION_MISMATCH", "Configured header_row differs from source selection.", source.id));
-  }
-
-  if (selected.final_range && source.data_range && selected.final_range !== source.data_range) {
-    warnings.push(warning("RANGE_SELECTION_MISMATCH", "Configured data_range differs from source selection.", source.id));
   }
 }
 
@@ -436,8 +408,39 @@ function validateLookups(
     if (lookup.preserve_input_value !== undefined && typeof lookup.preserve_input_value !== "boolean") {
       errors.push(issue("INVALID_LOOKUP_POLICY", "Lookup preserve_input_value must be boolean when provided.", source.id));
     }
+    validateLookupValueOverrides(source.id, lookup, errors);
     lookups.push(toLookupSummary(source.id, field.semantic_field, lookup));
   }
+}
+
+function validateLookupValueOverrides(sourceId: string, lookup: FieldLookupConfig, errors: MappingIssue[]): void {
+  if (lookup.value_overrides === undefined) return;
+  if (!Array.isArray(lookup.value_overrides)) {
+    errors.push(issue("INVALID_LOOKUP_VALUE_OVERRIDE", "Lookup value_overrides must be an array.", sourceId));
+    return;
+  }
+
+  lookup.value_overrides.forEach((override, index) => {
+    if (!override || typeof override !== "object" || Array.isArray(override)) {
+      errors.push(issue("INVALID_LOOKUP_VALUE_OVERRIDE", `Lookup value override ${index} must be an object.`, sourceId));
+      return;
+    }
+    if (typeof override.input !== "string" || override.input.length === 0) {
+      errors.push(issue("INVALID_LOOKUP_VALUE_OVERRIDE", `Lookup value override ${index} must declare input.`, sourceId));
+    }
+    if (!["resolve", "exclude", "conforming"].includes(String(override.action))) {
+      errors.push(issue("INVALID_LOOKUP_VALUE_OVERRIDE", `Lookup value override ${index} has invalid action.`, sourceId));
+    }
+    if (override.action === "resolve" && override.output === undefined) {
+      errors.push(issue("INVALID_LOOKUP_VALUE_OVERRIDE", `Lookup value override ${index} resolve action must declare output.`, sourceId));
+    }
+    if (override.severity && !["warning", "pending_review", "rejected"].includes(override.severity)) {
+      errors.push(issue("INVALID_LOOKUP_VALUE_OVERRIDE", `Lookup value override ${index} has invalid severity.`, sourceId));
+    }
+    if (override.scope !== undefined && (!isObject(override.scope) || Object.values(override.scope).some((value) => typeof value !== "string"))) {
+      errors.push(issue("INVALID_LOOKUP_VALUE_OVERRIDE", `Lookup value override ${index} scope must be a string map.`, sourceId));
+    }
+  });
 }
 
 function validateCircularDependencies(dependencies: Record<string, string[]>, errors: MappingIssue[]): void {

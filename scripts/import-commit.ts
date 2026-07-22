@@ -77,7 +77,7 @@ function printUsage(): void {
     [
       "Usage:",
       "npm.cmd exec tsx scripts/import-commit.ts -- \\",
-      '  --plan "data/reports/romet/da-02a-dry-run/import-dry-run-plan.json" \\',
+      '  --plan "data/reports/example/import-dry-run/import-dry-run-plan.json" \\',
       '  --company-id "<ROMET_COMPANY_ID>" \\',
       '  --plant-id "<ROMET_PLANT_ID>" \\',
       '  --owner-user-id "<ROMET_OWNER_USER_ID>"',
