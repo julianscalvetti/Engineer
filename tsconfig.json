@@ -38,7 +38,17 @@
   ],
   "exclude": [
     "node_modules",
+    "archive",
+    "archive/**",
+    "data/raw",
+    "data/raw/**",
+    "data/reports",
+    "data/reports/**",
     "design/references/template-v0",
-    "design/references/template-v0/**"
+    "design/references/template-v0/**",
+    "dist",
+    "dist/**",
+    "mcp/bundle/server",
+    "mcp/bundle/server/**"
   ]
 }
