@@ -1,0 +1,93 @@
+.shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  background: var(--background);
+  padding: 24px;
+}
+
+.panel {
+  width: min(100%, 420px);
+  border: 1px solid var(--line);
+  background: #ffffff;
+  padding: 28px;
+}
+
+.brand {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0 0 22px;
+  font-size: 1.75rem;
+  line-height: 1.15;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  color: #31383d;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd3d8;
+  background: #ffffff;
+  color: var(--foreground);
+  padding: 9px 10px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #256f85;
+  box-shadow: 0 0 0 3px rgba(37, 111, 133, 0.14);
+}
+
+.input:disabled {
+  background: #f1f3f4;
+  color: #808890;
+}
+
+.button {
+  min-height: 42px;
+  border: 1px solid #263238;
+  background: #263238;
+  color: #ffffff;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.button:hover:not(:disabled) {
+  background: #11191d;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.error {
+  border: 1px solid #e0b8b0;
+  background: #fff3f0;
+  color: #8a3326;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
